@@ -19,7 +19,7 @@ static const SHELL_COMMAND   commandSet_[] =
         .shortHelp = "Start"
     },
     {
-        .name = "stop                    ",
+        .name = "stop",
         .function = SHELL_ADC_stop,
         .shortHelp = "Stop"
     },

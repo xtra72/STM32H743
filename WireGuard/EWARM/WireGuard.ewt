@@ -1196,10 +1196,46 @@
         <group>
             <name>User</name>
             <group>
-                <name>Core</name>
+                <name>App</name>
+                <group>
+                    <name>shell</name>
+                    <file>
+                        <name>$PROJ_DIR$\..\App\shell\shell.c</name>
+                    </file>
+                    <file>
+                        <name>$PROJ_DIR$\..\App\shell\shell_1231.c</name>
+                    </file>
+                    <file>
+                        <name>$PROJ_DIR$\..\App\shell\shell_adc.c</name>
+                    </file>
+                    <file>
+                        <name>$PROJ_DIR$\..\App\shell\shell_config.c</name>
+                    </file>
+                    <file>
+                        <name>$PROJ_DIR$\..\App\shell\shell_monitor.c</name>
+                    </file>
+                    <file>
+                        <name>$PROJ_DIR$\..\App\shell\shell_rf.c</name>
+                    </file>
+                    <file>
+                        <name>$PROJ_DIR$\..\App\shell\shell_scan.c</name>
+                    </file>
+                    <file>
+                        <name>$PROJ_DIR$\..\App\shell\shell_sdram.c</name>
+                    </file>
+                </group>
                 <file>
-                    <name>$PROJ_DIR$\..\Core\Src\config.c</name>
+                    <name>$PROJ_DIR$\..\App\config.c</name>
                 </file>
+                <file>
+                    <name>$PROJ_DIR$\..\App\shell_cmd.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\App\task_main.c</name>
+                </file>
+            </group>
+            <group>
+                <name>Core</name>
                 <file>
                     <name>$PROJ_DIR$\..\Core\Src\freertos.c</name>
                 </file>
@@ -1247,83 +1283,53 @@
                 </group>
             </group>
             <group>
-                <name>shell</name>
+                <name>lib</name>
+                <group>
+                    <name>st</name>
+                    <file>
+                        <name>$PROJ_DIR$\..\lib\st\sx1231.c</name>
+                    </file>
+                </group>
+                <group>
+                    <name>sys</name>
+                    <file>
+                        <name>$PROJ_DIR$\..\lib\sys\stm32h7xx_sys.c</name>
+                    </file>
+                </group>
                 <file>
-                    <name>$PROJ_DIR$\..\Core\Src\shell\command.c</name>
+                    <name>$PROJ_DIR$\..\lib\adc.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\lib\crc16.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\lib\monitor.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\lib\rf.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\lib\scan.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\lib\sdram.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\lib\serial.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\lib\system.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\lib\time2.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\lib\trace.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\lib\utils.c</name>
                 </file>
             </group>
-            <group>
-                <name>st</name>
-                <file>
-                    <name>$PROJ_DIR$\..\Libs\st\sx1231.c</name>
-                </file>
-            </group>
-            <group>
-                <name>task</name>
-                <file>
-                    <name>$PROJ_DIR$\..\task\task_main.c</name>
-                </file>
-                <file>
-                    <name>$PROJ_DIR$\..\task\task_main.h</name>
-                </file>
-            </group>
-            <file>
-                <name>$PROJ_DIR$\..\Libs\Src\adc.c</name>
-            </file>
-            <file>
-                <name>$PROJ_DIR$\..\Libs\Src\crc16.c</name>
-            </file>
-            <file>
-                <name>$PROJ_DIR$\..\Libs\Src\monitor.c</name>
-            </file>
-            <file>
-                <name>$PROJ_DIR$\..\Libs\Src\rf.c</name>
-            </file>
-            <file>
-                <name>$PROJ_DIR$\..\Libs\Src\scan.c</name>
-            </file>
-            <file>
-                <name>$PROJ_DIR$\..\Libs\Src\sdram.c</name>
-            </file>
-            <file>
-                <name>$PROJ_DIR$\..\Libs\Src\serial.c</name>
-            </file>
-            <file>
-                <name>$PROJ_DIR$\..\Libs\Src\shell.c</name>
-            </file>
-            <file>
-                <name>$PROJ_DIR$\..\Libs\Src\shell_adc.c</name>
-            </file>
-            <file>
-                <name>$PROJ_DIR$\..\Libs\Src\shell_config.c</name>
-            </file>
-            <file>
-                <name>$PROJ_DIR$\..\Libs\Src\shell_monitor.c</name>
-            </file>
-            <file>
-                <name>$PROJ_DIR$\..\Libs\Src\shell_rf.c</name>
-            </file>
-            <file>
-                <name>$PROJ_DIR$\..\Libs\Src\shell_scan.c</name>
-            </file>
-            <file>
-                <name>$PROJ_DIR$\..\Libs\Src\shell_sdram.c</name>
-            </file>
-            <file>
-                <name>$PROJ_DIR$\..\Libs\Src\sys\stm32h7xx_sys.c</name>
-            </file>
-            <file>
-                <name>$PROJ_DIR$\..\Libs\Src\system.c</name>
-            </file>
-            <file>
-                <name>$PROJ_DIR$\..\Libs\Src\time2.c</name>
-            </file>
-            <file>
-                <name>$PROJ_DIR$\..\Libs\Src\trace.c</name>
-            </file>
-            <file>
-                <name>$PROJ_DIR$\..\Libs\Src\utils.c</name>
-            </file>
         </group>
     </group>
     <group>

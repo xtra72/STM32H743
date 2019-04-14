@@ -3,43 +3,43 @@
 #include "shell.h"
 #include "sx1231.h"
 
-RET_VALUE SHELL_RF_help(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
-RET_VALUE SHELL_RF_start(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
-RET_VALUE SHELL_RF_stop(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
-RET_VALUE SHELL_RF_reset(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
-RET_VALUE SHELL_RF_init(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
-RET_VALUE SHELL_RF_reg(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
+RET_VALUE SHELL_SX1231_help(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
+RET_VALUE SHELL_SX1231_start(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
+RET_VALUE SHELL_SX1231_stop(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
+RET_VALUE SHELL_SX1231_reset(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
+RET_VALUE SHELL_SX1231_init(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
+RET_VALUE SHELL_SX1231_reg(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
 
 static const SHELL_COMMAND   commandSet_[] =
 {
     {
         .name = "help",
-        .function = SHELL_RF_help,
+        .function = SHELL_SX1231_help,
         .shortHelp = "Help"
     },
     {
         .name = "start",
-        .function = SHELL_RF_start,
+        .function = SHELL_SX1231_start,
         .shortHelp = "Start"
     },
     {
         .name = "stop",
-        .function = SHELL_RF_stop,
+        .function = SHELL_SX1231_stop,
         .shortHelp = "Stop"
     },
     {
         .name = "reg",
-        .function = SHELL_RF_reg,
+        .function = SHELL_SX1231_reg,
         .shortHelp = "Registers"
     },
     {
         .name = "reset",
-        .function = SHELL_RF_reset,
+        .function = SHELL_SX1231_reset,
         .shortHelp = "Reset"
     },
     {
         .name = "init",
-        .function = SHELL_RF_init,
+        .function = SHELL_SX1231_init,
         .shortHelp = "Init"
     },
     {
@@ -54,7 +54,7 @@ RET_VALUE   SHELL_sx1231(char *argv[], uint32_t argc, struct _SHELL_COMMAND  con
     {
         char*   argc[] = {"help"};
 
-        ret = SHELL_RF_help(argc, 1, &commandSet_[0]);
+        ret = SHELL_SX1231_help(argc, 1, &commandSet_[0]);
     }
     else
     {
@@ -74,7 +74,7 @@ RET_VALUE   SHELL_sx1231(char *argv[], uint32_t argc, struct _SHELL_COMMAND  con
     return  ret;
 }
 
-RET_VALUE SHELL_RF_help(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
+RET_VALUE SHELL_SX1231_help(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
 {
     SHELL_COMMAND const*   subcommand = commandSet_;
     while(subcommand->name != NULL)
@@ -88,34 +88,30 @@ RET_VALUE SHELL_RF_help(char *argv[], uint32_t argc, struct _SHELL_COMMAND const
 }
 
 
-RET_VALUE SHELL_RF_start(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
+RET_VALUE SHELL_SX1231_start(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
 {
 
     return  RET_OK;
 }
 
-RET_VALUE SHELL_RF_stop(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
+RET_VALUE SHELL_SX1231_stop(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
 {
     return  RET_OK;
 }
 
-RET_VALUE SHELL_RF_reset(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
+RET_VALUE SHELL_SX1231_reset(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
 {
-    RF_reset();
-
     return  RET_OK;
 }
 
-RET_VALUE SHELL_RF_init(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
+RET_VALUE SHELL_SX1231_init(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
 {
-    RF_init();
-
     return  RET_OK;
 }
 
 extern  SPI_HandleTypeDef hspi3;
 
-RET_VALUE SHELL_RF_reg(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
+RET_VALUE SHELL_SX1231_reg(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
 {
     for(int i = 0 ; i < 64 ; i++)
     {

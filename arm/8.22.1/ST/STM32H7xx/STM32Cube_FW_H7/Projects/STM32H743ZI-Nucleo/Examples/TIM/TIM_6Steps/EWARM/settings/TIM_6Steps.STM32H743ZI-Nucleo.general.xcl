@@ -1,0 +1,15 @@
+"C:\Program Files\IAR Systems\Embedded Workbench 8.0\arm\bin\armproc.dll" 
+
+"C:\Program Files\IAR Systems\Embedded Workbench 8.0\arm\bin\armstlink2.dll" 
+
+"D:\Projects\STM32H743\arm\8.22.1\ST\STM32H7xx\STM32Cube_FW_H7\Projects\STM32H743ZI-Nucleo\Examples\TIM\TIM_6Steps\EWARM\STM32H743ZI-Nucleo\Exe\STM32H743ZI-Nucleo.out" 
+
+--plugin "C:\Program Files\IAR Systems\Embedded Workbench 8.0\arm\bin\armbat.dll" 
+
+--device_macro "C:\Program Files\IAR Systems\Embedded Workbench 8.0\arm\config\debugger\ST\STM32H7xx.dmac" 
+
+--flash_loader "C:\Program Files\IAR Systems\Embedded Workbench 8.0\arm\config\flashloader\ST\FlashSTM32H753xI.board" 
+
+
+
+

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<workspace>
+  <project>
+    <path>$WS_DIR$\LPTIM_Encoder\EWARM\LPTIM_Encoder.ewp</path>
+  </project>
+  <project>
+    <path>$WS_DIR$\LPTIM_PulseCounter\EWARM\LPTIM_PulseCounter.ewp</path>
+  </project>
+  <project>
+    <path>$WS_DIR$\LPTIM_PWMExternalClock\EWARM\LPTIM_PWMExternalClock.ewp</path>
+  </project>
+  <project>
+    <path>$WS_DIR$\LPTIM_PWM_LSE\EWARM\LPTIM_PWM_LSE.ewp</path>
+  </project>
+  <project>
+    <path>$WS_DIR$\LPTIM_Timeout\EWARM\LPTIM_Timeout.ewp</path>
+  </project>
+  <batchBuild>
+    <batchDefinition>
+      <name>ALL</name>
+      <member>
+        <project>LPTIM_Encoder</project>
+        <configuration>STM32H743ZI_Nucleo</configuration>
+      </member>
+      <member>
+        <project>LPTIM_PulseCounter</project>
+        <configuration>STM32H743ZI-Nucleo</configuration>
+      </member>
+      <member>
+        <project>LPTIM_PWMExternalClock</project>
+        <configuration>STM32H743ZI-Nucleo</configuration>
+      </member>
+      <member>
+        <project>LPTIM_PWM_LSE</project>
+        <configuration>STM32H743ZI-Nucleo</configuration>
+      </member>
+      <member>
+        <project>LPTIM_Timeout</project>
+        <configuration>STM32H743ZI-Nucleo</configuration>
+      </member>
+    </batchDefinition>
+  </batchBuild>
+</workspace>
+
+

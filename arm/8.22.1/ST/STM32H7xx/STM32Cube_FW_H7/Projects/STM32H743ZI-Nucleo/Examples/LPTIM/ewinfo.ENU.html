@@ -1,0 +1,420 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="http://www.w3.org/MarkUp/SCHEMA/xhtml11.xsd"
+     xml:lang="en">
+  <head>
+    <title>Information Center for ARM</title>
+    <meta http-equiv="Content-Type" content="application/xhtml+xml; charset=utf-8" />
+    <link type="text/css" rel="stylesheet" media="all" href="file://$TOOLKIT_DIR$/doc/infocenter/style/ewic.css" />
+  </head>
+  <body>
+  <div id="topbanner"></div>
+  <div id="titlebanner_small">
+    <h2>Information Center for ARM</h2>
+  </div>
+  <div class="breadcrumb"><a href="$TOOLKIT_DIR$/doc/infocenter/index.ENU.html">Information Center for ARM</a> | EXAMPLES</div>
+  <div class="mainblock">
+   <h2>Example description</h2>
+
+   <pre>  <!--Insert readme.txt-->
+<span style="font-family: monospace;">
+<h1>LPTIM Workspace</h1>
+
+=====================================================================================
+<b>LPTIM_Encoder</b>
+Example
+=====================================================================================
+
+<u>Example Description</u>
+
+This example shows how to configure the LPTIM peripheral in Encoder mode.
+
+At the beginning of the main program the HAL_Init() function is called to reset
+all the peripherals, initialize the Flash interface and the systick.
+The SystemClock_Config() function is used to configure the system clock for STM32H743xx Devices :
+The CPU at 400MHz
+The HCLK for D1 Domain AXI and AHB3 peripherals , D2 Domain AHB1/AHB2 peripherals and D3 Domain AHB4  peripherals at 200MHz.
+The APB clock dividers for D1 Domain APB3 peripherals, D2 Domain APB1 and APB2 peripherals and D3 Domain APB4 peripherals to  run at 100MHz.
+
+In this example, the LPTIM encoder is configured to generate up or down counting
+according to the phase between the two inputs of LPTIM1.
+
+In this exemple :
+
+        - At the first there is no change of state , LED1 &amp; LED3 are Off .
+        - If LED3 On and LED1 Off , the LPTIM encoder mode is in up counting   .
+        - If LED1 On and LED3 Off , the LPTIM encoder is mode in down counting .
+        - In case of error , LED1 &amp; LED 3 On
+
+To change the direction of counting switch the inputs 1 &amp; 2 of LPTIM1.
+
+Note: Care must be taken when using HAL_Delay(), this function provides accurate delay (in milliseconds)
+      based on variable incremented in SysTick ISR. This implies that if HAL_Delay() is called from
+      a peripheral ISR process, then the SysTick interrupt must have higher priority (numerically lower)
+      than the peripheral interrupt. Otherwise the caller ISR process will be blocked.
+      To change the SysTick interrupt priority you have to use HAL_NVIC_SetPriority() function.
+
+Note: The example need to ensure that the SysTick time base is always set to 1 millisecond
+      to have correct HAL operation.
+
+
+<u>Directory contents</u>
+
+  - LPTIM/LPTIM_Encoder/Inc/stm32h7xx_hal_conf.h    HAL configuration file
+  - LPTIM/LPTIM_Encoder/Inc/stm32h7xx_it.h          Interrupt handlers header file
+  - LPTIM/LPTIM_Encoder/Inc/main.h                  Header for main.c module
+  - LPTIM/LPTIM_Encoder/Src/stm32h7xx_it.c          Interrupt handlers
+  - LPTIM/LPTIM_Encoder/Src/main.c                  Main program
+  - LPTIM/LPTIM_Encoder/Src/stm32h7xx_hal_msp.c     HAL MSP file
+  - LPTIM/LPTIM_Encoder/Src/system_stm32h7xx.c      STM32H7xx system source file
+
+
+<u>Hardware and Software environment</u>
+
+  - This example runs on STM32H743xx devices.
+
+  - This example has been tested with STMicroelectronics STM32H743ZI-NUCLEO
+    board and can be easily tailored to any other supported device
+    and development board.
+
+  - STM32H743ZI-NUCLEO Set-up
+
+ Use GPIOx to generate 2 square signals with different phases
+   Connect the following pins of GPIOx outputs :
+        - GPIOB : pin (PB.12)( pin 16 in CN 12 connector )
+        - GPIOB : pin (PB.13)(pin 30 in CN 12 connector)
+   To the following inputs of LPTIM 1 using wires :
+        - Input 1 : pin (PD.12)(pin 43 in CN12 connector)
+        - Input 2 : pin (PE.1)(pin 61 in CN 11 connector)
+
+
+<u>How to use it ?</u>
+
+In order to make the program work, you must do the following :
+ - Rebuild all files and load your image into target memory
+ - Run the example
+
+
+=====================================================================================
+<b>LPTIM_PulseCounter</b>
+Low power timer pulse counter example
+=====================================================================================
+
+<u>Example Description</u>
+
+This example describes how to configure and use LPTIM to count pulses through
+the LPTIM HAL API.
+
+At the beginning of the main program the HAL_Init() function is called to reset
+all the peripherals, initialize the Flash interface and the systick.
+The SystemClock_Config() function is used to configure the system clock for STM32H743xx Devices :
+The CPU at 400MHz
+The HCLK for D1 Domain AXI and AHB3 peripherals , D2 Domain AHB1/AHB2 peripherals and D3 Domain AHB4  peripherals at 200MHz.
+The APB clock dividers for D1 Domain APB3 peripherals, D2 Domain APB1 and APB2 peripherals and D3 Domain APB4 peripherals to  run at 100MHz.
+
+To reduce power consumption, MCU enters stop mode after starting counting. Each
+time the counter reachs the maximum value (Period/Autoreload), an interruption
+is generated, the MCU is woke up from stop mode and LED1 toggles the last state.
+
+In this example Period value is set to 1000, so each time the counter counts
+(1000 + 1) rising edges on LPTIM1_IN1 pin, an interrupt is generated and LED1
+toggles.
+
+In this example the internal clock provided to the LPTIM1 is LSI (32 Khz),
+so the external input is sampled with LSI clock. In order not to miss any event,
+the frequency of the changes on the external Input1 signal should never exceed the
+frequency of the internal clock provided to the LPTIM1 (LSI for the
+present example).
+
+Note: Care must be taken when using HAL_Delay(), this function provides accurate
+      delay (in milliseconds) based on variable incremented in SysTick ISR. This
+      implies that if HAL_Delay() is called from a peripheral ISR process, then
+      the SysTick interrupt must have higher priority (numerically lower)
+      than the peripheral interrupt. Otherwise the caller ISR process will be blocked.
+      To change the SysTick interrupt priority you have to use HAL_NVIC_SetPriority() function.
+
+Note: The example need to ensure that the SysTick time base is always set to 1 millisecond
+      to have correct HAL operation.
+
+
+<u>Directory contents</u>
+
+  - LPTIM/LPTIM_PulseCounter/Inc/stm32h7xx_hal_conf.h    HAL configuration file
+  - LPTIM/LPTIM_PulseCounter/Inc/stm32h7xx_it.h          Interrupt handlers header file
+  - LPTIM/LPTIM_PulseCounter/Inc/main.h                  Header for main.c module
+  - LPTIM/LPTIM_PulseCounter/Src/stm32h7xx_it.c          Interrupt handlers
+  - LPTIM/LPTIM_PulseCounter/Src/main.c                  Main program
+  - LPTIM/LPTIM_PulseCounter/Src/stm32h7xx_hal_msp.c     HAL MSP module
+  - LPTIM/LPTIM_PulseCounter/Src/system_stm32h7xx.c      STM32H7xx system source file
+
+
+<u>Hardware and Software environment</u>
+
+  - This example runs on STM32H743xx devices.
+
+  - This example has been tested with STMicroelectronics STM32H743ZI-Nucleo
+    board and can be easily tailored to any other supported device
+    and development board.
+
+  - Generate pulses on PD12 (pin 43 in CN12 connector). (Connect a square waveform).
+
+  - If the external function generator is set to provide a square waveform at 1Khz,
+    the led will toggle each second
+
+
+<u>How to use it ?</u>
+
+In order to make the program work, you must do the following :
+ - Rebuild all files and load your image into target memory
+ - Run the example
+
+
+=====================================================================================
+<b>LPTIM_PWMExternalClock</b>
+LPTIM PWM External clock example
+=====================================================================================
+
+<u>Example Description</u>
+
+This example describes how to configure and use LPTIM to generate a PWM at the
+lowest power consumption, using an external counter clock, through the HAL LPTIM API.
+
+At the beginning of the main program the HAL_Init() function is called to reset
+all the peripherals, initialize the Flash interface and the systick.
+The SystemClock_Config() function is used to configure the system clock for STM32H743xx Devices :
+The CPU at 400MHz
+The HCLK for D1 Domain AXI and AHB3 peripherals , D2 Domain AHB1/AHB2 peripherals and D3 Domain AHB4  peripherals at 200MHz.
+The APB clock dividers for D1 Domain APB3 peripherals, D2 Domain APB1 and APB2 peripherals and D3 Domain APB4 peripherals to  run at 100MHz.
+
+The Autorelaod equal to 99 so the output frequency (OutputFrequency) will
+be equal to the external counter clock (InputFrequency) divided by (99+1).
+
+  OutputFrequency = InputFrequency / (Autoreload + 1)
+                  = InputFrequency / 100
+
+Pulse value equal to 49 and the duty cycle (DutyCycle) is computed as follow:
+
+  DutyCycle = 1 - [(PulseValue + 1)/ (Autoreload + 1)]
+  DutyCycle = 50%
+
+To minimize the power consumption, after starting generating the PWM signal,
+the MCU enters in STOP mode. Note that GPIOs are configured in Low Speed to
+lower the consumption.
+
+User push-button pin (PC.13)is configured as input with external interrupt (EXTI_Line15_10),
+falling edge. When User push-button is pressed, wakeup event is generated and PWM signal
+generation is stopped.
+
+Note: Care must be taken when using HAL_Delay(), this function provides accurate
+      delay (in milliseconds) based on variable incremented in SysTick ISR. This
+      implies that if HAL_Delay() is called from a peripheral ISR process, then
+      the SysTick interrupt must have higher priority (numerically lower)
+      than the peripheral interrupt. Otherwise the caller ISR process will be blocked.
+      To change the SysTick interrupt priority you have to use HAL_NVIC_SetPriority() function.
+
+Note: The example need to ensure that the SysTick time base is always set to 1 millisecond
+      to have correct HAL operation.
+
+
+<u>Directory contents</u>
+
+  - LPTIM/LPTIM_PWMExternalClock/Inc/stm32h7xx_hal_conf.h    HAL configuration file
+  - LPTIM/LPTIM_PWMExternalClock/Inc/stm32h7xx_it.h          Interrupt handlers header file
+  - LPTIM/LPTIM_PWMExternalClock/Inc/main.h                  Header for main.c module
+  - LPTIM/LPTIM_PWMExternalClock/Src/stm32h7xx_it.c          Interrupt handlers
+  - LPTIM/LPTIM_PWMExternalClock/Src/main.c                  Main program
+  - LPTIM/LPTIM_PWMExternalClock/Src/stm32h7xx_hal_msp.c     HAL MSP module
+  - LPTIM/LPTIM_PWMExternalClock/Src/system_stm32h7xx.c      STM32H7xx system source file
+
+
+<u>Hardware and Software environment</u>
+
+  - This example runs on STM32H743xx devices.
+
+  - This example has been tested with STMicroelectronics STM32H743ZI-Nucleo
+    board and can be easily tailored to any other supported device
+    and development board.
+
+  - Connect a clock signal to PD.12 (connected to pin 43 in CN12 connector).
+  - Connect PD.13 ((pin 41 in CN12 connector)) to an oscilloscope
+    to monitor the LPTIM output waveform.
+
+
+<u>How to use it ?</u>
+
+In order to make the program work, you must do the following :
+ - Open your preferred tool chain
+ - Rebuild all files and load your image into target memory
+ - Run the example
+
+
+=====================================================================================
+<b>LPTIM_PWM_LSE</b>
+LPTIM PWM Low Power example with LSE clock source
+=====================================================================================
+
+<u>Example Description</u>
+
+This example describes how to configure and use LPTIM to generate a PWM in low power mode
+using the LSE as a counter clock, through the HAL LPTIM API.
+
+At the beginning of the main program the HAL_Init() function is called to reset
+all the peripherals, initialize the Flash interface and the systick.
+The SystemClock_Config() function is used to configure the system clock for STM32H743xx Devices :
+The CPU at 400MHz
+The HCLK for D1 Domain AXI and AHB3 peripherals , D2 Domain AHB1/AHB2 peripherals and D3 Domain AHB4  peripherals at 200MHz.
+The APB clock dividers for D1 Domain APB3 peripherals, D2 Domain APB1 and APB2 peripherals and D3 Domain APB4 peripherals to  run at 100MHz.
+
+In this example, the LPTIM instance used is LPTIM1 and the low power mode is Stop mode.
+
+The counter clock is LSE (32.768 KHz), Autoreload equal to 99 so the output
+frequency (FrequencyOutput) will be equal to 327.680.
+
+  FrequencyOutput = Counter Clock Frequency / (Autoreload + 1)
+                  = 32768 / 100
+                  = 327.680 Hz
+
+Pulse value equal to 49 and the duty cycle (DutyCycle) is computed as follow:
+
+  DutyCycle = 1 - ((PulseValue + 1)/ (Autoreload + 1))
+  DutyCycle = 50%
+
+To minimize the power consumption, after starting generating the PWM signal,
+the MCU enters in Stop mode. Note that GPIOs are configured in Low Speed to
+enhance the consumption.
+
+User push-button pin (PC.13)is configured as input with external interrupt (EXTI_Line15_10),
+falling edge. When User push-button is pressed, wakeup event is generated and PWM signal
+generation is stopped.
+
+Note: Care must be taken when using HAL_Delay(), this function provides accurate
+      delay (in milliseconds) based on variable incremented in SysTick ISR. This
+      implies that if HAL_Delay() is called from a peripheral ISR process, then
+      the SysTick interrupt must have higher priority (numerically lower)
+      than the peripheral interrupt. Otherwise the caller ISR process will be blocked.
+      To change the SysTick interrupt priority you have to use HAL_NVIC_SetPriority() function.
+
+Note: The example need to ensure that the SysTick time base is always set to 1 millisecond
+      to have correct HAL operation.
+
+
+<u>Directory contents</u>
+
+  - LPTIM/LPTIM_PWM_LSE/Inc/stm32h7xx_hal_conf.h    HAL configuration file
+  - LPTIM/LPTIM_PWM_LSE/Inc/stm32h7xx_it.h          Interrupt handlers header file
+  - LPTIM/LPTIM_PWM_LSE/Inc/main.h                  Header for main.c module
+  - LPTIM/LPTIM_PWM_LSE/Src/stm32h7xx_it.c          Interrupt handlers
+  - LPTIM/LPTIM_PWM_LSE/Src/main.c                  Main program
+  - LPTIM/LPTIM_PWM_LSE/Src/stm32h7xx_hal_msp.c     HAL MSP module
+  - LPTIM/LPTIM_PWM_LSE/Src/system_stm32h7xx.c      STM32H7xx system source file
+
+
+<u>Hardware and Software environment</u>
+
+  - This example runs on STM32H743xx devices.
+
+  - This example has been tested with STMicroelectronics STM32H743ZI-Nucleo
+    board and can be easily tailored to any other supported device
+    and development board.
+
+  - Connect PD.13 (Pin 41 in CN12 connector) to an oscilloscope to monitor the LPTIM1 output waveform.
+
+  - LSE oscillator must be mounted on the board, else this example does not work.
+
+
+<u>How to use it ?</u>
+
+In order to make the program work, you must do the following :
+ - Rebuild all files and load your image into target memory
+ - Run the example
+
+
+=====================================================================================
+<b>LPTIM_Timeout</b>
+LPTIM Timeout example with LSE clock source
+=====================================================================================
+
+<u>Example Description</u>
+
+This example describes how to implement a low power timeout to wake-up the
+system using the LPTIMER, through the HAL LPTIM API.
+
+At the beginning of the main program the HAL_Init() function is called to reset
+all the peripherals, initialize the Flash interface and the systick.
+The SystemClock_Config() function is used to configure the system clock for STM32H743xx Devices :
+The CPU at 400MHz
+The HCLK for D1 Domain AXI and AHB3 peripherals , D2 Domain AHB1/AHB2 peripherals and D3 Domain AHB4  peripherals at 200MHz.
+The APB clock dividers for D1 Domain APB3 peripherals, D2 Domain APB1 and APB2 peripherals and D3 Domain APB4 peripherals to  run at 100MHz.
+
+The main() function configures the LPTIMER and goes in STOP mode.
+In order to start the timer a first trigger is needed on (PG.14)(LPTIM_ETR).
+Any successive trigger event on (PG.14) will reset the counter and the timer
+will restart. The timeout value corresponds to the compare value (32768).
+If after the first trigger no other trigger occurs within the expected time frame,
+the MCU is woken-up by the compare match event and LED2 toggles.
+
+In this example the LPTIM is clocked by the LSI
+
+  Timeout = (Compare + 1) / LPTIM_Clock
+          = (32767 + 1) / LSI_Clock_Frequency
+
+Once the system is woken up it remains in run mode. The led keeps toggling each time the timer expires.
+
+Note: Care must be taken when using HAL_Delay(), this function provides accurate
+      delay (in milliseconds) based on variable incremented in SysTick ISR. This
+      implies that if HAL_Delay() is called from a peripheral ISR process, then
+      the SysTick interrupt must have higher priority (numerically lower)
+      than the peripheral interrupt. Otherwise the caller ISR process will be blocked.
+      To change the SysTick interrupt priority you have to use HAL_NVIC_SetPriority() function.
+
+Note: The example need to ensure that the SysTick time base is always set to 1 millisecond
+      to have correct HAL operation.
+
+
+<u>Directory contents</u>
+
+  - LPTIM/LPTIM_Timeout/Inc/stm32h7xx_hal_conf.h    HAL configuration file
+  - LPTIM/LPTIM_Timeout/Inc/stm32h7xx_it.h          Interrupt handlers header file
+  - LPTIM/LPTIM_Timeout/Inc/main.h                  Header for main.c module
+  - LPTIM/LPTIM_Timeout/Src/stm32h7xx_it.c          Interrupt handlers
+  - LPTIM/LPTIM_Timeout/Src/main.c                  Main program
+  - LPTIM/LPTIM_Timeout/Src/stm32h7xx_hal_msp.c     HAL MSP module
+  - LPTIM/LPTIM_Timeout/Src/system_stm32h7xx.c      STM32H7xx system source file
+
+
+<u>Hardware and Software environment</u>
+
+  - This example runs on STM32H743xx devices.
+
+  - This example has been tested with STMicroelectronics STM32H743ZI-Nucleo
+    board and can be easily tailored to any other supported device
+    and development board.
+
+  - Connect an external trigger (ETR) to PG.14(pin61 CN12 connector ).
+    If the trigger is higher then 1Hz, the counter is regularly reset, the system stays in STOP mode.
+    If the trigger is lower then 1Hz, the counter expires and the system is woken up.
+
+
+<u>How to use it ?</u>
+
+In order to make the program work, you must do the following :
+ - Open your preferred tool chain
+ - Rebuild all files and load your image into target memory
+ - Run the example
+
+
+
+  <br\><b><a href="$CUR_DIR$/../../../../Documentation/STM32CubeH7GettingStarted.pdf">Getting started with STM32CubeH7 Embedded Software for STM32H7xx series</a></b>
+
+  <br\><b><a href="$CUR_DIR$/../../../../Release_Notes.html">Release Notes for STM32CubeH7 Embedded Software</a></b>
+
+  <br\><b><a href="$CUR_DIR$/../Release_Notes.html">Release Notes for STM32H743ZI-Nucleo Examples</a></b>
+
+</span>
+  </pre>
+  </div>
+  </body>
+</html>
+

@@ -19,4 +19,6 @@ RET_VALUE   RF_setBitrate(uint32_t bitrate);
 uint8_t     RF_readRegister(uint8_t    address);
 void        RF_writeRegister(uint8_t    address, uint8_t value);
 
+void        RF_transmit(uint8_t* buffer, uint32_t size, uint32_t timeout);
+
 #endif

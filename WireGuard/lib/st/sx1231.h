@@ -1238,20 +1238,6 @@
 *******************************************************************/
 #define SX1231_RF_FRAME_TIMEOUT(BitRate) (uint16_t)(float)((((float)((uint32_t)SX1231_RF_BUFFER_SIZE * (uint32_t)8 *((uint32_t)4  + (uint32_t)1)) / (float)((uint32_t)4 * (uint32_t)BitRate)) * (float)128) + (float)1)
 
-typedef void    (*SX1231_SET_SIGNAL_SELECT)(bool select);
-typedef void    (*SX1231_RESET)(void);
-typedef void    (*SX1231_SPI_TRANSMIT)(uint8_t* buffer, uint32_t size, uint32_t timeout);
-typedef void    (*SX1231_SPI_RECEIVE)(uint8_t* buffer, uint32_t size, uint32_t timeout);
-
-typedef struct
-{
-    SX1231_SET_SIGNAL_SELECT    select;
-    SX1231_RESET                reset;
-    SX1231_SPI_TRANSMIT         transmit;
-    SX1231_SPI_RECEIVE          receive;
-
-}   SX1231_CONFIG;
-
 /*******************************************************************
 ** Functions prototypes                                           **
 *******************************************************************/
@@ -1259,7 +1245,7 @@ typedef struct
 /*******************************************************************
 ** Configuration functions                                        **
 *******************************************************************/
-void    SX1231_init(SX1231_CONFIG* config);
+void    SX1231_init(void);
 
 /*******************************************************************
 ** InitRFChip : This routine initializes the RFChip registers     **

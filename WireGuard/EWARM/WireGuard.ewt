@@ -1224,6 +1224,12 @@
                         <name>$PROJ_DIR$\..\App\shell\shell_sdram.c</name>
                     </file>
                 </group>
+                <group>
+                    <name>task</name>
+                    <file>
+                        <name>$PROJ_DIR$\..\App\rf_task.c</name>
+                    </file>
+                </group>
                 <file>
                     <name>$PROJ_DIR$\..\App\config.c</name>
                 </file>

@@ -1,29 +1,47 @@
 #include "target.h"
 #include "sx1231.h"
 #include "rf.h"
+#include "trace.h"
 
-void    RF_reset(void);
-void    RF_selectSignal(bool select);
-void    RF_transmit(uint8_t* buffer, uint32_t size, uint32_t timeout);
-void    RF_receive(uint8_t* buffer, uint32_t size, uint32_t timeout);
+#define TRACE(...)  TRACE_printf("RF", __VA_ARGS__)
 
-static  SX1231_CONFIG   _config =
+typedef enum
 {
-    .select = RF_selectSignal,
-    .reset = RF_reset,
-    .transmit = RF_transmit,
-    .receive = RF_receive
-};
+    RF_CMD_STOP
+}   RF_CMD;
+
+typedef struct
+{
+    RF_CMD  cmd;
+    bool    inProgress;
+    bool    invalid;
+}   RF_MESSAGE;
+
+typedef struct
+{
+    RF_CMD  cmd;
+    bool    inProgress;
+    bool    invalid;
+    uint8_t startAddress;
+
+}   RF_MESSAGE_READ_REG;
+
+static  void RF_taskMain(void const * argument);
 
 static  SPI_HandleTypeDef*  spi_ = NULL;
 
-static  uint32_t    bitrate_ = 300000;
+static  uint32_t            bitrate_ = 300000;
+static   QueueHandle_t      messageQueueHandle_;
+static  osThreadId          threadId_ = NULL;
+static  bool                stop_ = true;
+static  SemaphoreHandle_t   semaphore_ = NULL;
 
 RET_VALUE   RF_init(SPI_HandleTypeDef* spi)
 {
+    messageQueueHandle_ = xQueueCreate( 16, sizeof( void* ) );
+    semaphore_ = xSemaphoreCreateMutex();
     spi_ = spi;
-
-    SX1231_init(&_config);
+    SX1231_init();
 
     return  RET_OK;
 }
@@ -48,18 +66,91 @@ RET_VALUE   RF_getConfig(RF_CONFIG* config)
 
 RET_VALUE   RF_start(void)
 {
+    RET_VALUE   ret = RET_OK;
+
+    if (threadId_ == NULL)
+    {
+        osThreadDef(rfTask, RF_taskMain, osPriorityIdle, 0, 512);
+        threadId_ = osThreadCreate(osThread(rfTask), NULL);
+        if (threadId_ == NULL)
+        {
+            ret = RET_ERROR;
+        }
+    }
+
+    return  ret;
+}
+
+RET_VALUE   RF_stop(void)
+{
+    RET_VALUE   ret = RET_OK;
+
+    RF_MESSAGE* message = pvPortMalloc(sizeof(RF_MESSAGE));
+    if (message != NULL)
+    {
+        message->cmd = RF_CMD_STOP;
+
+        while(!stop_)
+        {
+            osDelay(1);
+        }
+
+        osThreadTerminate(threadId_);
+        threadId_ = NULL;
+    }
+    else
+    {
+        ret = RET_NOT_ENOUGH_MEMORY;
+    }
+
+    return  ret;
+}
+
+void RF_taskMain(void const * argument)
+{
+    RF_MESSAGE*  message;
+
+    TRACE("RF task start!\n");
+
+    RF_reset();
+
     SX1231_initRFChip();
 
-    return  RET_OK;
+    stop_ = false;
+
+    while(!stop_)
+    {
+        if( xQueueReceive( messageQueueHandle_, &(message), ( TickType_t ) 10 ) )
+		{
+            message->inProgress = true;
+            if (message->cmd == RF_CMD_STOP)
+            {
+                vPortFree(message);
+                break;
+            }
+            else
+            {
+                switch(message->cmd)
+                {
+                case    RF_CMD_READ_REG:
+                    {
+
+                    }
+                }
+                vPortFree(message);
+            }
+        }
+    }
+
+    while( xQueueReceive( messageQueueHandle_, &(message), ( TickType_t ) 0 ) )
+    {
+        vPortFree(message);
+    }
+
+    stop_ = true;
+
 }
 
-void    RF_reset(void)
-{
-    HAL_GPIO_WritePin(RF_RESET_GPIO_Port, RF_RESET_Pin, GPIO_PIN_SET);
-    osDelay(1);
-    HAL_GPIO_WritePin(RF_RESET_GPIO_Port, RF_RESET_Pin, GPIO_PIN_RESET);
-    osDelay(5);
-}
 
 typedef struct
 {
@@ -106,11 +197,7 @@ RET_VALUE   RF_setBitrate(uint32_t bitrate)
         }
     }
 
-    SX1231_writeRegister(SX1231_REG_BITRATEMSB, SX1231_RF_BITRATEMSB_300000);
-    SX1231_writeRegister(SX1231_REG_BITRATELSB, SX1231_RF_BITRATELSB_300000);
-    bitrate_ = 300000;
-
-    return  RET_OK;
+    return  RET_OUT_OF_RANGE;
 }
 
 uint32_t    RF_getBitrate(void)
@@ -120,15 +207,50 @@ uint32_t    RF_getBitrate(void)
 
 uint8_t RF_readRegister(uint8_t    address)
 {
-    return  SX1231_readRegister(address);
+    return  value = 0;
+
+    if( xSemaphoreTake( semaphore_, ( TickType_t ) 10 ) == pdTRUE )
+    {
+        value = SX1231_readRegister(address);
+
+        xSemaphoreGive( semaphore_ );
+    }
+
+    return  value;
 }
 
 void    RF_writeRegister(uint8_t    address, uint8_t value)
 {
-    SX1231_writeRegister(address, value);
+    if( xSemaphoreTake( semaphore_, ( TickType_t ) 10 ) == pdTRUE )
+    {
+        SX1231_writeRegister(address, value);
+
+        xSemaphoreGive( semaphore_ );
+    }
 }
 
-void   RF_selectSignal(bool   select)
+void    RF_reset(void)
+{
+    HAL_GPIO_WritePin(RF_RESET_GPIO_Port, RF_RESET_Pin, GPIO_PIN_SET);
+    osDelay(1);
+    HAL_GPIO_WritePin(RF_RESET_GPIO_Port, RF_RESET_Pin, GPIO_PIN_RESET);
+    osDelay(5);
+}
+
+void    RF_transmit(uint8_t* buffer, uint32_t size, uint32_t timeout)
+{
+    uint8_t ret;
+
+    if( xSemaphoreTake( semaphore_, ( TickType_t ) 10 ) == pdTRUE )
+    {
+        SX1231_sendRfFrame(buffer, size, &ret);
+
+        xSemaphoreGive( semaphore_ );
+    }
+}
+
+
+void   SX1231_SPI_select(bool   select)
 {
     if (select)
     {
@@ -140,7 +262,7 @@ void   RF_selectSignal(bool   select)
     }
 }
 
-void    RF_transmit(uint8_t* buffer, uint32_t size, uint32_t timeout)
+void    SX1231_SPI_transmit(uint8_t* buffer, uint32_t size, uint32_t timeout)
 {
     if (spi_)
     {
@@ -148,7 +270,7 @@ void    RF_transmit(uint8_t* buffer, uint32_t size, uint32_t timeout)
     }
 }
 
-void    RF_receive(uint8_t* buffer, uint32_t size, uint32_t timeout)
+void    SX1231_SPI_receive(uint8_t* buffer, uint32_t size, uint32_t timeout)
 {
     if (spi_)
     {

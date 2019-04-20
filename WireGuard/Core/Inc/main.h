@@ -60,10 +60,20 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define RF_RESET_Pin GPIO_PIN_10
 #define RF_RESET_GPIO_Port GPIOG
+#define MICRO_SD_DETECT_Pin GPIO_PIN_6
+#define MICRO_SD_DETECT_GPIO_Port GPIOB
+#define RF_DIO_Pin GPIO_PIN_2
+#define RF_DIO_GPIO_Port GPIOE
+#define RF_DIO0_Pin GPIO_PIN_5
+#define RF_DIO0_GPIO_Port GPIOE
+#define RF_DIO1_Pin GPIO_PIN_4
+#define RF_DIO1_GPIO_Port GPIOE
 #define RF_SCK_Pin GPIO_PIN_0
 #define RF_SCK_GPIO_Port GPIOK
 #define RF_NSS_Pin GPIO_PIN_1
 #define RF_NSS_GPIO_Port GPIOK
+#define RF_DIO2_Pin GPIO_PIN_6
+#define RF_DIO2_GPIO_Port GPIOF
 #define AI_01_Pin GPIO_PIN_7
 #define AI_01_GPIO_Port GPIOF
 #define RF_MISO_Pin GPIO_PIN_11
@@ -72,6 +82,8 @@ void Error_Handler(void);
 #define AI_02_GPIO_Port GPIOF
 #define RF_MOSI_Pin GPIO_PIN_10
 #define RF_MOSI_GPIO_Port GPIOJ
+#define RF_DIO3_Pin GPIO_PIN_3
+#define RF_DIO3_GPIO_Port GPIOH
 #define AI_03_Pin GPIO_PIN_2
 #define AI_03_GPIO_Port GPIOC
 #define AI_04_Pin GPIO_PIN_3
@@ -84,6 +96,8 @@ void Error_Handler(void);
 #define AI_06_GPIO_Port GPIOA
 #define AI_08_Pin GPIO_PIN_1
 #define AI_08_GPIO_Port GPIOB
+#define RF_DIO4_Pin GPIO_PIN_4
+#define RF_DIO4_GPIO_Port GPIOA
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */

@@ -6,22 +6,45 @@
 
 #define TRACE(...)  TRACE_printf("MON", __VA_ARGS__)
 
-osTimerId timerTraceMonitorHandle;
+static  void    MONITOR_monitorCallback(void const * argument);
+
+static  osTimerId   timerTraceMonitorHandle;
+static  bool        timerRun = false;
 
 RET_VALUE   MONITOR_start()
 {
-    osTimerStart(timerTraceMonitorHandle, 1000);
+    if (!timerRun)
+    {
+        TRACE("Monitoring has already started!\n");
+        return  RET_OK;
+    }
 
-    TRACE("Monitor started!\n");
+    if (timerTraceMonitorHandle == 0)
+    {
+        osTimerDef(timerTraceMonitor, MONITOR_monitorCallback);
+        timerTraceMonitorHandle = osTimerCreate(osTimer(timerTraceMonitor), osTimerPeriodic, NULL);
+    }
+
+    osTimerStart(timerTraceMonitorHandle, 1000);
+    timerRun = true;
+
+    TRACE("Monitoring started!\n");
 
     return  RET_OK;
 }
 
 RET_VALUE   MONITOR_stop()
 {
-    osTimerStop(timerTraceMonitorHandle);
+    if (timerRun)
+    {
+        osTimerStop(timerTraceMonitorHandle);
 
-    TRACE("Monitor stopped!\n");
+        TRACE("Monitoring stopped!\n");
+    }
+    else
+    {
+        TRACE("Monitoring has not started!\n");
+    }
 
     return  RET_OK;
 }

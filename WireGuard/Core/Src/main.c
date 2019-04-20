@@ -60,6 +60,7 @@ UART_HandleTypeDef huart1;
 SDRAM_HandleTypeDef hsdram1;
 
 osThreadId defaultTaskHandle;
+osTimerId timerSystemMonitorHandle;
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef*  adcList[] = {&hadc1, &hadc3};
@@ -77,6 +78,7 @@ static void MX_USART1_UART_Init(void);
 static void MX_SPI5_Init(void);
 static void MX_RTC_Init(void);
 void MAIN_taskEntry(void const * argument);
+void SYSTEM_montiorCallback(void const * argument);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
@@ -137,6 +139,11 @@ int main(void)
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
+
+  /* Create the timer(s) */
+  /* definition and creation of timerSystemMonitor */
+  osTimerDef(timerSystemMonitor, SYSTEM_montiorCallback);
+  timerSystemMonitorHandle = osTimerCreate(osTimer(timerSystemMonitor), osTimerPeriodic, NULL);
 
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
@@ -598,11 +605,17 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(RF_RESET_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PB6 */
-  GPIO_InitStruct.Pin = GPIO_PIN_6;
+  /*Configure GPIO pin : MICRO_SD_DETECT_Pin */
+  GPIO_InitStruct.Pin = MICRO_SD_DETECT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  HAL_GPIO_Init(MICRO_SD_DETECT_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : RF_DIO_Pin RF_DIO0_Pin RF_DIO1_Pin */
+  GPIO_InitStruct.Pin = RF_DIO_Pin|RF_DIO0_Pin|RF_DIO1_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
   /*Configure GPIO pin : RF_NSS_Pin */
   GPIO_InitStruct.Pin = RF_NSS_Pin;
@@ -610,6 +623,24 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(RF_NSS_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : RF_DIO2_Pin */
+  GPIO_InitStruct.Pin = RF_DIO2_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(RF_DIO2_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : RF_DIO3_Pin */
+  GPIO_InitStruct.Pin = RF_DIO3_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(RF_DIO3_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : RF_DIO4_Pin */
+  GPIO_InitStruct.Pin = RF_DIO4_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(RF_DIO4_GPIO_Port, &GPIO_InitStruct);
 
 }
 
@@ -636,6 +667,14 @@ __weak void MAIN_taskEntry(void const * argument)
     osDelay(1);
   }
   /* USER CODE END 5 */ 
+}
+
+/* SYSTEM_montiorCallback function */
+__weak void SYSTEM_montiorCallback(void const * argument)
+{
+  /* USER CODE BEGIN SYSTEM_montiorCallback */
+  
+  /* USER CODE END SYSTEM_montiorCallback */
 }
 
 /**

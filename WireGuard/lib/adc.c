@@ -5,9 +5,6 @@
 #define TRACE(...)  TRACE_printf("ADC", __VA_ARGS__)
 
 /* ADC handle declaration */
-extern  osTimerId timerStartADCHandle;
-extern  osTimerId timerMgmtADCHandle;
-
 ADC_CALLBACK    ADC_callback = NULL;
 void*           ADC_options = NULL;
 
@@ -122,14 +119,9 @@ RET_VALUE   ADC_stop(void)
         return  RET_NOT_RUNNING;
     }
 
-    if (osTimerStop(timerStartADCHandle) == osOK)
-    {
-        run = false;
+    run = false;
 
-        return  RET_OK;
-    }
-
-    return  RET_ERROR;
+    return  RET_OK;
 }
 
 uint32_t    ADC_CHANNEL_getCount(void)

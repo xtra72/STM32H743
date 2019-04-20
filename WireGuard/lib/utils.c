@@ -69,6 +69,59 @@ bool    strToHex32(char* string, uint32_t* value)
     return  true;
 }
 
+bool    strToHexArray(char* string, uint8_t* buffer, uint32_t bufferSize, uint32_t* length)
+{
+    ASSERT(buffer);
+
+    if ((string == NULL) || (strlen(string) == 0) || ((strlen(string) % 2) != 0))
+    {
+        return  false;
+    }
+
+    for(int i = 0 ; i < strlen(string) ; i++)
+    {
+        if (!(isdigit(string[i]) || ('a' <= string[i] && string[i] <= 'f') || ('A' <= string[i] && string[i] <= 'F')))
+        {
+            return  false;
+        }
+    }
+
+    *length = 0;
+
+    for(int i = 0 ; i < strlen(string) ; i+=2)
+    {
+        uint8_t hi, lo;
+        if ('A' <= string[i] && string[i] <= 'F')
+        {
+            hi = (string[i] - 'A' + 10);
+        }
+        else if ('a' <= string[i] && string[i] <= 'f')
+        {
+            hi = (string[i] - 'a' + 10);
+        }
+        else
+        {
+            hi = (string[i] - '0');
+        }
+
+        if ('A' <= string[i] && string[i] <= 'F')
+        {
+            lo = (string[i] - 'A' + 10);
+        }
+        else if ('a' <= string[i] && string[i] <= 'f')
+        {
+            lo = (string[i] - 'a' + 10);
+        }
+        else
+        {
+            lo = (string[i] - '0');
+        }
+
+        buffer[(*length)++] = (hi << 4) | lo;
+    }
+
+    return  true;
+}
 uint32_t    seperateString(char* string, char* delimitSet, char* seperatedStrings[], uint32_t maxSeperatedCount)
 {
     uint32_t    count = 0;

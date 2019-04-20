@@ -3,6 +3,10 @@
 #include "stm32h7xx_hal.h"
 #include "sx1231.h"
 
+__weak  void    SX1231_SPI_select(bool select);
+__weak  void    SX1231_SPI_transmit(uint8_t* buffer, uint32_t size, uint32_t timeout);
+__weak  void    SX1231_SPI_receive(uint8_t* buffer, uint32_t size, uint32_t timeout);
+
 /*******************************************************************
 ** Global variables                                               **
 *******************************************************************/
@@ -108,18 +112,9 @@ static  uint16_t RegistersCfg[] =
 /*******************************************************************
 ** Configuration functions                                        **
 *******************************************************************/
-static  SX1231_CONFIG   _config =
-{
-    .select = NULL,
-    .reset = NULL
-};
 
-void    SX1231_init(SX1231_CONFIG* config)
+void    SX1231_init(void)
 {
-    if (config != NULL)
-    {
-        memcpy(&_config, config, sizeof(SX1231_CONFIG));
-    }
 }
 
 /*******************************************************************
@@ -132,8 +127,6 @@ void    SX1231_init(SX1231_CONFIG* config)
 void SX1231_initRFChip (void)
 {
     uint16_t i;
-
-    SX1231_reset();
 
     /////// RC CALIBRATION (Once at POR) ///////
     SX1231_setRFMode(SX1231_RF_STANDBY);
@@ -222,20 +215,10 @@ void SX1231_writeRegister(uint8_t address, uint16_t value)
     buffer[0] = 0x80 | address;
     buffer[1] = value;
 
-    if (_config.select != NULL)
-    {
-        _config.select(true);
-    }
+    SX1231_SPI_select(true);
 
-    if (_config.transmit != NULL)
-    {
-        _config.transmit(buffer, 2, 10);
-    }
-
-    if (_config.select != NULL)
-    {
-        _config.select(false);
-    }
+    SX1231_SPI_transmit(buffer, 2, 10);
+    SX1231_SPI_select(false);
 }
 
 /*******************************************************************
@@ -249,24 +232,12 @@ uint16_t SX1231_readRegister(uint8_t address)
 {
     uint8_t buffer;
 
-    if (_config.select != NULL)
-    {
-        _config.select(true);
-    }
+    SX1231_SPI_select(true);
 
-    if (_config.transmit != NULL)
-    {
-        _config.transmit(&address, 1, 10);
-        if (_config.receive != NULL)
-        {
-            _config.receive(&buffer, 1, 10);
-        }
-    }
+    SX1231_SPI_transmit(&address, 1, 10);
+    SX1231_SPI_receive(&buffer, 1, 10);
 
-    if (_config.select != NULL)
-    {
-        _config.select(false);
-    }
+    SX1231_SPI_select(false);
 
     return buffer;
 }
@@ -282,7 +253,7 @@ uint16_t SX1231_readRegister(uint8_t address)
 ** In  : *buffer, size                                            **
 ** Out : *pReturnCode                                             **
 *******************************************************************/
-void SX1231_SendRfFrame(uint8_t *buffer, uint8_t size, uint8_t *pReturnCode)
+void SX1231_sendRfFrame(uint8_t *buffer, uint8_t size, uint8_t *pReturnCode)
 {
     if((size+1) > SX1231_RF_BUFFER_SIZE_MAX)
     {
@@ -327,7 +298,7 @@ void SX1231_SendRfFrame(uint8_t *buffer, uint8_t size, uint8_t *pReturnCode)
 ** In  : -                                                        **
 ** Out : *buffer, size, *pReturnCode                              **
 *******************************************************************/
-void SX1231_ReceiveRfFrame(uint8_t *buffer, uint8_t *size, uint8_t *pReturnCode)
+void SX1231_receiveRfFrame(uint8_t *buffer, uint8_t *size, uint8_t *pReturnCode)
 {
 
     uint8_t TempRFState;
@@ -539,17 +510,33 @@ void SX1231_Handle_Irq_CntA (void)
 } //End Handle_Irq_CntA
 
 
-
 /*******************************************************************
-** SX1231_reset :                                                 **
+** SX1231_transmit :                                                 **
 ********************************************************************
 ** In              : -                                            **
 ** Out             : -                                            **
 *******************************************************************/
-void SX1231_reset(void)
+__weak  void SX1231_SPI_transmit(uint8_t* buffer, uint32_t size, uint32_t timeout)
 {
-    if (_config.reset != NULL)
-    {
-        _config.reset();
-    }
 }
+
+/*******************************************************************
+** SX1231_receive :                                                 **
+********************************************************************
+** In              : -                                            **
+** Out             : -                                            **
+*******************************************************************/
+__weak  void SX1231_SPI_receive(uint8_t* buffer, uint32_t size, uint32_t timeout)
+{
+}
+
+/*******************************************************************
+** SX1231_select :                                                 **
+********************************************************************
+** In              : -                                            **
+** Out             : -                                            **
+*******************************************************************/
+__weak  void SX1231_SPI_select(bool select)
+{
+}
+

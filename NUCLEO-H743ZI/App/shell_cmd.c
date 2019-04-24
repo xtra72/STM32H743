@@ -7,12 +7,12 @@ extern  CONFIG  config_;
 RET_VALUE SHELL_COMMAND_getVersion(char *argv[], uint32_t argc, struct _SHELL_COMMAND* command)
 {
     RET_VALUE   ret = RET_INVALID_ARGUMENT;
-    
+
     if (argc == 1)
     {
         SHELL_printf("%s\n", CONFIG_VERSION);
         ret = RET_OK;
-    }   
+    }
     else if (argc == 2)
     {
         if (strcasecmp(argv[1], "help") == 0)
@@ -21,25 +21,25 @@ RET_VALUE SHELL_COMMAND_getVersion(char *argv[], uint32_t argc, struct _SHELL_CO
             ret = RET_OK;
         }
     }
-   
-    
+
+
     return  ret;
 }
 
 RET_VALUE SHELL_COMMAND_date(char *argv[], uint32_t argc, struct _SHELL_COMMAND* command)
 {
     RET_VALUE   ret = RET_INVALID_ARGUMENT;
-    
+
     if (argc == 1)
     {
-        FI_TIME time;
-        
-        ret = FI_TIME_get(&time);
+        TIME2 time;
+
+        ret = TIME2_get(&time);
         if (ret == RET_OK)
         {
-            SHELL_printf("%s (%d)\n", FI_TIME_toString(time, "%Y-%m-%d %H:%M:%S"), time);
+            SHELL_printf("%s (%d)\n", TIME2_toString(time, "%Y-%m-%d %H:%M:%S"), time);
         }
-        else 
+        else
         {
             SHELL_printf("Error : Can't get time!\n");
         }
@@ -48,18 +48,18 @@ RET_VALUE SHELL_COMMAND_date(char *argv[], uint32_t argc, struct _SHELL_COMMAND*
     {
         if (strcasecmp(argv[1], "init") == 0)
         {
-            FI_TIME_init();
+            TIME2_init();
         }
-        else 
+        else
         {
             uint32_t    i;
             uint32_t    length;
-            
+
             length = strlen(argv[1]);
             if (length == 14)
             {
                 ret = RET_OK;
-                
+
                 for(i = 0 ; i < length ; i++)
                 {
                     if (!isdigit(argv[1][i]))
@@ -70,16 +70,16 @@ RET_VALUE SHELL_COMMAND_date(char *argv[], uint32_t argc, struct _SHELL_COMMAND*
                     }
                 }
             }
-            
+
             if (ret == RET_OK)
             {
                 struct tm   tm;
                 uint32_t    value;
 
                 memset(&tm, 0, sizeof(tm));
-                
+
                 ret = RET_INVALID_ARGUMENT;
-                
+
                 value =  strtoul(&argv[1][12], 0, 10);
                 argv[1][12] = 0;
                 if (value < 60)
@@ -112,7 +112,7 @@ RET_VALUE SHELL_COMMAND_date(char *argv[], uint32_t argc, struct _SHELL_COMMAND*
 
                                         value = mktime(&tm);
                                         SHELL_printf("value : %s", ctime(&value));
-                                        ret = FI_TIME_set(value);
+                                        ret = TIME2_set(value);
                                     }
                                 }
                             }
@@ -122,84 +122,7 @@ RET_VALUE SHELL_COMMAND_date(char *argv[], uint32_t argc, struct _SHELL_COMMAND*
             }
         }
     }
-    
-    return  ret;
-}
 
-
-RET_VALUE SHELL_COMMAND_config(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
-{
-    RET_VALUE   ret = RET_INVALID_ARGUMENT;
-    
-    switch(argc)
-    {
-    case    1:
-        {
-            SHELL_printf("\n%s\n", "[ System ]");
-            SHELL_printf("%16s : %s\n", "S/N", config_.serialNumber);
-
-            SHELL_printf("\n%s\n", "[ Debug ]");
-            SHELL_printf("%16s : %s\n", "Trace", TRACE_getEnable()?"ON":"OFF");
-
-            ret = RET_OK;
-        }
-        break;
-        
-    case    2:
-        {
-            if (strcasecmp(argv[1], "save") == 0)
-            {
-                CONFIG* config = pvPortMalloc(sizeof(CONFIG));
-                if (config == NULL)
-                {
-                    ret = RET_NOT_ENOUGH_MEMORY;
-                    break;
-                }
-                
-                ret = SHELL_getConfig(&config->shell);
-                if (ret != RET_OK)
-                {
-                    vPortFree(config);
-                    SHELL_printf("Can't get shell settings!\n");
-                    break;                        
-                }
-                
-                ret = TRACE_getConfig(&config->trace);
-                if (ret != RET_OK)
-                {
-                    vPortFree(config);
-                    SHELL_printf("Can't get TRACE settings!\n");
-                    break;                        
-                }
-                
-                ret = CONFIG_save(config);
-                if (ret != RET_OK)
-                {
-                    vPortFree(config);
-                    SHELL_printf("Failed to save settings!\n");
-                    break;                        
-                }
-                
-                memcpy(&config_, config, sizeof(CONFIG));
-                vPortFree(config);
-            }
-            else if (strcasecmp(argv[1], "load") == 0)
-            {
-                ret = CONFIG_load(&config_);
-            }
-            else if (strcasecmp(argv[1], "clean") == 0)
-            {
-                ret = CONFIG_clear();
-            }
-        }
-        break;
-        
-        
-    default:
-        ret = RET_INVALID_ARGUMENT;
-    }
-    
-   
     return  ret;
 }
 
@@ -218,7 +141,7 @@ RET_VALUE SHELL_COMMAND_serialNumber(char *argv[], uint32_t argc, struct _SHELL_
                 strcpy(config_.serialNumber, argv[2]);
                 SHELL_printf("S/N changed to %s\n", config_.serialNumber);
             }
-            else 
+            else
             {
                 SHELL_printf("Invalid S/N\n");
             }
@@ -238,8 +161,8 @@ RET_VALUE   SHELL_COMMAND_sleep(char *argv[], uint32_t argc, struct _SHELL_COMMA
 
 RET_VALUE SHELL_COMMAND_reset(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
 {
-    SYS_reset();
-    
+    //SYS_reset();
+
     return  RET_OK;
 }
 
@@ -247,7 +170,7 @@ RET_VALUE SHELL_COMMAND_reset(char *argv[], uint32_t argc, struct _SHELL_COMMAND
 RET_VALUE SHELL_COMMAND_trace(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
 {
     RET_VALUE   ret = RET_INVALID_ARGUMENT;
-    
+
     switch(argc)
     {
     case    1:
@@ -256,7 +179,7 @@ RET_VALUE SHELL_COMMAND_trace(char *argv[], uint32_t argc, struct _SHELL_COMMAND
             ret = RET_OK;
         }
         break;
-        
+
     case    2:
         {
             if (strcasecmp(argv[1], "on") == 0)
@@ -274,6 +197,6 @@ RET_VALUE SHELL_COMMAND_trace(char *argv[], uint32_t argc, struct _SHELL_COMMAND
         }
         break;
     }
-    
+
     return  ret;
 }

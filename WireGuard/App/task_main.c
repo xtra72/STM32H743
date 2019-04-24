@@ -52,7 +52,7 @@ static const SHELL_COMMAND   shellCommands[] =
 
 void MAIN_taskEntry(void const * argument)
 {
-    if (CONFIG_load(&config_) != RET_OK)
+//    if (CONFIG_load(&config_) != RET_OK)
     {
         CONFIG_loadDefault(&config_);
     }

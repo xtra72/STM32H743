@@ -62,10 +62,11 @@ void Error_Handler(void);
 #define RF_RESET_GPIO_Port GPIOG
 #define MICRO_SD_DETECT_Pin GPIO_PIN_6
 #define MICRO_SD_DETECT_GPIO_Port GPIOB
-#define RF_DIO_Pin GPIO_PIN_2
-#define RF_DIO_GPIO_Port GPIOE
+#define RF_DIO5_Pin GPIO_PIN_2
+#define RF_DIO5_GPIO_Port GPIOE
 #define RF_DIO0_Pin GPIO_PIN_5
 #define RF_DIO0_GPIO_Port GPIOE
+#define RF_DIO0_EXTI_IRQn EXTI9_5_IRQn
 #define RF_DIO1_Pin GPIO_PIN_4
 #define RF_DIO1_GPIO_Port GPIOE
 #define RF_SCK_Pin GPIO_PIN_0

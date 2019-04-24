@@ -4,7 +4,7 @@
 #include "FreeRTOS.h"
 #include "target.h"
 #include "shell.h"
-#include "fi_time.h"
+#include "time2.h"
 
 static  TRACE_CONFIG    config_;
 static char     buffer_[256];
@@ -89,11 +89,11 @@ RET_VALUE    TRACE_printf
     {
         va_list  ap;
         uint32_t titleLength = 0;
-        FI_TIME time;
+        TIME2 time;
         
-        FI_TIME_get(&time);
+        TIME2_get(&time);
         
-        strcpy(title, FI_TIME_toString(time, "[%Y%m%d%H%M%S]"));
+        strcpy(title, TIME2_toString(time, "[%Y%m%d%H%M%S]"));
         titleLength = strlen(title);
         titleLength += snprintf(&title[titleLength], sizeof(title) - titleLength, "[%8s] : ", module);
 

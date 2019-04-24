@@ -87,7 +87,7 @@ const CONFIG  defaultConfig =
     },
     .trace =
     {
-        .enable = false
+        .enable = true
     }
 };
 

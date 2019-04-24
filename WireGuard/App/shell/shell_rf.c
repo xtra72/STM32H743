@@ -10,6 +10,8 @@ RET_VALUE SHELL_RF_stop(char *argv[], uint32_t argc, struct _SHELL_COMMAND const
 RET_VALUE SHELL_RF_reset(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
 RET_VALUE SHELL_RF_reg(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
 RET_VALUE SHELL_RF_send(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
+RET_VALUE SHELL_RF_recv(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
+RET_VALUE SHELL_RF_test(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
 
 static const SHELL_COMMAND   commandSet_[] =
 {
@@ -44,6 +46,16 @@ static const SHELL_COMMAND   commandSet_[] =
         .shortHelp = "send"
     },
     {
+        .name = "recv",
+        .function = SHELL_RF_recv,
+        .shortHelp = "recv"
+    },
+    {
+        .name = "test",
+        .function = SHELL_RF_test,
+        .shortHelp = "Test"
+    },
+    {
         .name = NULL
     }
 };
@@ -53,9 +65,9 @@ RET_VALUE   SHELL_rf(char *argv[], uint32_t argc, struct _SHELL_COMMAND  const* 
     RET_VALUE   ret = RET_INVALID_COMMAND;
     if (argc == 1)
     {
-        char*   argc[] = {"help"};
+        SHELL_printf("%16s : %s\n", "Status", RF_getStatusString(RF_getStatus()));
+        SHELL_printf("%16s : %d bps\n", "Bitrate", RF_getBitrate());
 
-        ret = SHELL_RF_help(argc, 1, &commandSet_[0]);
     }
     else
     {
@@ -144,11 +156,101 @@ RET_VALUE SHELL_RF_send(char *argv[], uint32_t argc, struct _SHELL_COMMAND const
             return  RET_INVALID_ARGUMENT;
         }
 
-        RF_transmit(buffer, length, 5000);
+        RF_send(buffer, length, 5000);
 
     }
     else if (argc == 2)
     {
+
+    }
+
+    return  RET_OK;
+}
+
+RET_VALUE SHELL_RF_recv(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
+{
+    if (argc == 1)
+    {
+        uint8_t     buffer[64];
+        uint32_t    length;
+
+        while(1)
+        {
+            if (RF_recv(buffer, sizeof(buffer), &length, 10000) == RET_OK)
+            {
+                SHELL_printf("Packet received[%d].\n", length);
+            }
+        }
+
+    }
+
+    return  RET_OK;
+}
+
+RET_VALUE SHELL_RF_test(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
+{
+    if (argc == 3)
+    {
+        if (strcasecmp(argv[1], "stop") == 0)
+        {
+            RF_testStop();
+        }
+        else
+        {
+            SHELL_printf("Invalid argument!\n");
+            return  RET_INVALID_ARGUMENT;
+        }
+
+
+    }
+    else if (argc == 4)
+    {
+        if (strcasecmp(argv[1], "send") == 0)
+        {
+            uint32_t    interval;
+            uint8_t     buffer[64];
+            uint32_t    length;
+
+            if (!strToUint32(argv[2], &interval) || !strToHexArray(argv[3], buffer, sizeof(buffer), &length))
+            {
+                SHELL_printf("Invalid argument!\n");
+                return  RET_INVALID_ARGUMENT;
+            }
+
+            RF_testSend(buffer, length, interval, 0);
+        }
+        else if (strcasecmp(argv[1], "recv") == 0)
+        {
+            uint32_t    interval;
+            uint32_t    timeout;
+
+            if (!strToUint32(argv[2], &interval) || !strToUint32(argv[3], &timeout))
+            {
+                SHELL_printf("Invalid argument!\n");
+                return  RET_INVALID_ARGUMENT;
+            }
+
+            RF_testRecv(interval, timeout);
+        }
+
+    }
+    else if (argc == 5)
+    {
+        if (strcasecmp(argv[1], "send") == 0)
+        {
+            uint32_t    interval;
+            uint32_t    count;
+            uint8_t     buffer[64];
+            uint32_t    length;
+
+            if (!strToUint32(argv[2], &interval) || !strToUint32(argv[3], &count) || !strToHexArray(argv[4], buffer, sizeof(buffer), &length))
+            {
+                SHELL_printf("Invalid argument!\n");
+                return  RET_INVALID_ARGUMENT;
+            }
+
+            RF_testSend(buffer, length, interval, count);
+        }
 
     }
 

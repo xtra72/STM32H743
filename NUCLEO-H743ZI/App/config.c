@@ -2,16 +2,29 @@
 #include "config.h"
 #include "crc16.h"
 
+#ifndef TARGET_FLASH_CONFIG_START_ADDR
 #define FLASH_CONFIG_START_ADDR 0x08030000  /* Start @ of user Flash area */
+#else
+#define FLASH_CONFIG_START_ADDR TARGET_FLASH_CONFIG_START_ADDR
+#endif
+
+#ifndef TARGET_FLASH_CONFIG_SIZE
 #define FLASH_CONFIG_SIZE       0x00000400
+#else
+#define FLASH_CONFIG_SIZE       TARGET_FLASH_CONFIG_SIZE
+#endif
+
+#ifndef TARGET_FLASH_CONFIG_SLOT_COUNT
 #define FLASH_CONFIG_SLOT_COUNT 4
-#define FLASH_CONFIG_END_ADDR   (FLASH_CONFIG_START_ADDR + ( FLASH_CONFIG_SIZE * FLASH_CONFIG_SLOT_COUNT)) 
+#else
+#define FLASH_CONFIG_SLOT_COUNT TARGET_FLASH_CONFIG_SLOT_COUNT
+#endif
+
+#define FLASH_CONFIG_END_ADDR   (FLASH_CONFIG_START_ADDR + ( FLASH_CONFIG_SIZE * FLASH_CONFIG_SLOT_COUNT))
 
 RET_VALUE   CONFIG_saveAt(uint32_t index, CONFIG* config);
 
-static    FLASH_EraseInitTypeDef EraseInitStruct;
-
-char    *CONFIG_SHELL_BANNER[] = 
+char    *CONFIG_SHELL_BANNER[] =
 {
     "\r\n==========================================",
     "\r\n=   (C) COPYRIGHT 2018 FutureICT         =",
@@ -23,14 +36,48 @@ char    *CONFIG_SHELL_BANNER[] =
     NULL
 };
 
-const CONFIG  defaultConfig = 
+const CONFIG  defaultConfig =
 {
     .crc        =   0,
     .sequence   =   0,
     .serialNumber=  "FCN-10S-00000000",
-    .shell = 
+    .adc =
     {
-        .serial = 
+        .channelCount = 8,
+        .channels =
+        {
+            { 1, ADC_CHANNEL_3},
+            { 1, ADC_CHANNEL_2},
+            { 1, ADC_CHANNEL_0},
+            { 1, ADC_CHANNEL_1},
+            { 0, ADC_CHANNEL_0},
+            { 0, ADC_CHANNEL_1},
+            { 0, ADC_CHANNEL_3},
+            { 0, ADC_CHANNEL_5},
+        },
+        .dataCount = 1000
+    },
+#if SUPPORT_SDRAM
+    .sdram =
+    {
+        .startAddress = 0xD0000000,
+        .size         = 16 * 1024*1024,
+        .startHeapAddress = 0xD0000000,
+        .heapSize         = 16 * 1024*1024
+    },
+#endif
+    .scan =
+    {
+        .interval = 1,
+        .count = 60 * 1000
+    },
+    .rf =
+    {
+        .bitrate = 115200
+    },
+    .shell =
+    {
+        .serial =
         {
             .port = SERIAL_PORT_3,
             .baudrate = SERIAL_BAUDRATE_115200,
@@ -40,9 +87,9 @@ const CONFIG  defaultConfig =
             .priority = 5
         }
     },
-    .trace = 
+    .trace =
     {
-        .enable = false
+        .enable = true
     }
 };
 
@@ -54,19 +101,19 @@ RET_VALUE   CONFIG_init(void)
 RET_VALUE   CONFIG_loadDefault(CONFIG* config)
 {
     ASSERT(config != NULL);
-    
+
     memcpy(config, &defaultConfig, sizeof(CONFIG));
-    
+
     return  RET_OK;
 }
 
 RET_VALUE   CONFIG_load(CONFIG* config)
 {
     ASSERT(config != NULL);
-    
+
     uint32_t    i;
     CONFIG*     last = NULL;
-    
+
     for(i = 0 ; i < FLASH_CONFIG_SLOT_COUNT ; i++)
     {
         CONFIG* item = (CONFIG*)(FLASH_CONFIG_START_ADDR + FLASH_CONFIG_SIZE * i);
@@ -78,24 +125,24 @@ RET_VALUE   CONFIG_load(CONFIG* config)
             }
         }
     }
-    
+
     if (last == NULL)
     {
         return  RET_ERROR;
     }
-    
+
     memcpy(config, last, sizeof(CONFIG));
-    
+
     return  RET_OK;
 }
 
 RET_VALUE   CONFIG_save(CONFIG* config)
 {
     ASSERT(config != NULL);
-    
+
     uint32_t    i, index = 0;
     CONFIG*     last = NULL;
-    
+
     for(i = 0 ; i < FLASH_CONFIG_SLOT_COUNT ; i++)
     {
         CONFIG* item = (CONFIG*)(FLASH_CONFIG_START_ADDR + FLASH_CONFIG_SIZE * i);
@@ -108,12 +155,12 @@ RET_VALUE   CONFIG_save(CONFIG* config)
             }
         }
     }
-    
+
     config->sequence++;
     config->crc = CRC16_calc(&config->sequence, sizeof(CONFIG) - sizeof(config->crc));
-    
+
     if (last == NULL)
-    {        
+    {
         return  CONFIG_saveAt(0, config);
     }
 
@@ -134,6 +181,7 @@ RET_VALUE   CONFIG_clear(void)
 bool    CONFIG_isValid(CONFIG* config)
 {
     ASSERT(config != NULL);
-    
+
     return  config->crc == CRC16_calc(&config->sequence, sizeof(CONFIG) - sizeof(config->crc));
 }
+

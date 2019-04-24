@@ -2047,6 +2047,9 @@ typedef struct
 /* Legacy define */
 #define FLASH_BASE                FLASH_BANK1_BASE
 
+/*!< Device electronic signature memory map */
+#define UID_BASE                  (0x1FF1E800UL)         /*!< Unique device ID register base address */
+
 #define FLASH_BANK2_BASE          ((uint32_t)0x08100000) /*!< For legacy only , Flash bank 2 not available on STM32H750xx value line                  */
 #define FLASH_OTP_BANK2_BASE      ((uint32_t)0x1FF40000) /*!< For legacy only , Flash bank 2 not available on STM32H750xx value line                  */
 #define FLASH_OTP_BANK2_END       ((uint32_t)0x1FF5FFFF) /*!< For legacy only , Flash bank 2 not available on STM32H750xx value line                  */

@@ -23,9 +23,9 @@
 
 if ($debugfile -eq "")
 {
-& "D:\Program Files\IAR Systems\Embedded Workbench 8.0\common\bin\cspybat" -f "E:\Google Drive\Project\STM32H743\NUCLEO-H743ZI\EWARM\settings\NUCLEO-H743ZI.NUCLEO-H743ZI.general.xcl" --backend -f "E:\Google Drive\Project\STM32H743\NUCLEO-H743ZI\EWARM\settings\NUCLEO-H743ZI.NUCLEO-H743ZI.driver.xcl" 
+& "C:\Program Files\IAR Systems\Embedded Workbench 8.0\common\bin\cspybat" -f "D:\Projects\STM32H743\NUCLEO-H743ZI\EWARM\settings\NUCLEO-H743ZI.NUCLEO-H743ZI.general.xcl" --backend -f "D:\Projects\STM32H743\NUCLEO-H743ZI\EWARM\settings\NUCLEO-H743ZI.NUCLEO-H743ZI.driver.xcl" 
 }
 else
 {
-& "D:\Program Files\IAR Systems\Embedded Workbench 8.0\common\bin\cspybat" -f "E:\Google Drive\Project\STM32H743\NUCLEO-H743ZI\EWARM\settings\NUCLEO-H743ZI.NUCLEO-H743ZI.general.xcl" --debug_file=$debugfile --backend -f "E:\Google Drive\Project\STM32H743\NUCLEO-H743ZI\EWARM\settings\NUCLEO-H743ZI.NUCLEO-H743ZI.driver.xcl" 
+& "C:\Program Files\IAR Systems\Embedded Workbench 8.0\common\bin\cspybat" -f "D:\Projects\STM32H743\NUCLEO-H743ZI\EWARM\settings\NUCLEO-H743ZI.NUCLEO-H743ZI.general.xcl" --debug_file=$debugfile --backend -f "D:\Projects\STM32H743\NUCLEO-H743ZI\EWARM\settings\NUCLEO-H743ZI.NUCLEO-H743ZI.driver.xcl" 
 }

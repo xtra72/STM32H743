@@ -1,8 +1,6 @@
 #ifndef ADC_H__
 #define ADC_H__
 
-#include "target.h"
-
 #ifndef TARGET_ADC_COUNT_MAX
 #define ADC_COUNT_MAX           2
 #else

@@ -4,6 +4,24 @@
 #include "target.h"
 #include "serial.h"
 
+#ifndef TARGET_SHELL_COMMAND_MAX
+#define SHELL_COMMAND_MAX           32
+#else
+#define SHELL_COMMAND_MAX           TARGET_SHELL_COMMAND_MAX
+#endif
+
+#ifndef TARGET_SHELL_PRIORITY
+#define SHELL_PRIORITY              osPriorityNormal
+#else
+#define SHELL_PRIORITY              TARGET_SHELL_PRIORITY
+#endif
+
+#ifdef  SHELL_STACK_SIZE
+#define SHELL_STACK_SIZE            configMINIMAL_STACK_SIZE
+#else
+#define SHELL_STACK_SIZE            TARGET_SHELL_STACK_SIZE
+#endif
+
 typedef struct
 {
     SERIAL_CONFIG   serial;
@@ -16,9 +34,12 @@ typedef struct _SHELL_COMMAND
     char*       shortHelp;
 }   SHELL_COMMAND;
 
-RET_VALUE   SHELL_init(SHELL_CONFIG* config);
+RET_VALUE   SHELL_init(const SHELL_COMMAND   *commands, uint32_t count);
 RET_VALUE   SHELL_final(void);
 
+RET_VALUE   SHELL_addCommands(const SHELL_COMMAND   *commands, uint32_t count);
+
+RET_VALUE   SHELL_setConfig(SHELL_CONFIG* config);
 RET_VALUE   SHELL_getConfig(SHELL_CONFIG* config);
 
 RET_VALUE   SHELL_start(void);

@@ -1,6 +1,6 @@
 "C:\Program Files\IAR Systems\Embedded Workbench 8.0\arm\bin\armproc.dll" 
 
-"C:\Program Files\IAR Systems\Embedded Workbench 8.0\arm\bin\armstlink2.dll" 
+"C:\Program Files\IAR Systems\Embedded Workbench 8.0\arm\bin\armjlink2.dll" 
 
 "D:\Projects\STM32H743\WireGuard\EWARM\WireGuard\Exe\WireGuard.out" 
 

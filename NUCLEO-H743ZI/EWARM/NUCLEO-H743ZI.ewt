@@ -1196,16 +1196,46 @@
         <group>
             <name>User</name>
             <group>
-                <name>Core</name>
+                <name>App</name>
                 <group>
                     <name>shell</name>
                     <file>
-                        <name>$PROJ_DIR$\..\Core\Src\shell\command.c</name>
+                        <name>$PROJ_DIR$\..\App\shell\shell.c</name>
+                    </file>
+                    <file>
+                        <name>$PROJ_DIR$\..\App\shell\shell_adc.c</name>
+                    </file>
+                    <file>
+                        <name>$PROJ_DIR$\..\App\shell\shell_config.c</name>
+                    </file>
+                    <file>
+                        <name>$PROJ_DIR$\..\App\shell\shell_monitor.c</name>
+                    </file>
+                    <file>
+                        <name>$PROJ_DIR$\..\App\shell\shell_rf.c</name>
+                    </file>
+                    <file>
+                        <name>$PROJ_DIR$\..\App\shell\shell_scan.c</name>
+                    </file>
+                    <file>
+                        <name>$PROJ_DIR$\..\App\shell\shell_sdram.c</name>
                     </file>
                 </group>
                 <file>
-                    <name>$PROJ_DIR$\..\Core\Src\config.c</name>
+                    <name>$PROJ_DIR$\..\App\config.c</name>
                 </file>
+                <file>
+                    <name>$PROJ_DIR$\..\App\rf_task.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\App\shell_cmd.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\App\task_main.c</name>
+                </file>
+            </group>
+            <group>
+                <name>Core</name>
                 <file>
                     <name>$PROJ_DIR$\..\Core\Src\freertos.c</name>
                 </file>
@@ -1223,30 +1253,51 @@
                 </file>
             </group>
             <group>
-                <name>Libs</name>
+                <name>lib</name>
+                <group>
+                    <name>st</name>
+                    <file>
+                        <name>$PROJ_DIR$\..\lib\st\sx1231.c</name>
+                    </file>
+                </group>
                 <group>
                     <name>sys</name>
                     <file>
-                        <name>$PROJ_DIR$\..\Libs\Src\sys\stm32h7xx_sys.c</name>
+                        <name>$PROJ_DIR$\..\lib\sys\stm32h7xx_sys.c</name>
                     </file>
                 </group>
                 <file>
-                    <name>$PROJ_DIR$\..\Libs\Src\crc16.c</name>
+                    <name>$PROJ_DIR$\..\lib\adc.c</name>
                 </file>
                 <file>
-                    <name>$PROJ_DIR$\..\Libs\Src\fi_time.c</name>
+                    <name>$PROJ_DIR$\..\lib\crc16.c</name>
                 </file>
                 <file>
-                    <name>$PROJ_DIR$\..\Libs\Src\serial.c</name>
+                    <name>$PROJ_DIR$\..\lib\monitor.c</name>
                 </file>
                 <file>
-                    <name>$PROJ_DIR$\..\Libs\Src\shell.c</name>
+                    <name>$PROJ_DIR$\..\lib\rf.c</name>
                 </file>
                 <file>
-                    <name>$PROJ_DIR$\..\Libs\Src\trace.c</name>
+                    <name>$PROJ_DIR$\..\lib\scan.c</name>
                 </file>
                 <file>
-                    <name>$PROJ_DIR$\..\Libs\Src\utils.c</name>
+                    <name>$PROJ_DIR$\..\lib\sdram.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\lib\serial.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\lib\system.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\lib\time2.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\lib\trace.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\lib\utils.c</name>
                 </file>
             </group>
         </group>
@@ -1317,6 +1368,12 @@
             </file>
             <file>
                 <name>$PROJ_DIR$\..\Drivers\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_rtc_ex.c</name>
+            </file>
+            <file>
+                <name>$PROJ_DIR$\..\Drivers\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_spi.c</name>
+            </file>
+            <file>
+                <name>$PROJ_DIR$\..\Drivers\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_spi_ex.c</name>
             </file>
             <file>
                 <name>$PROJ_DIR$\..\Drivers\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_tim.c</name>

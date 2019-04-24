@@ -25,6 +25,7 @@ typedef int RET_VALUE;
 #define RET_OUT_OF_RANGE        14
 #define RET_ALREADY_EXIST       15
 
+#define RET_BUSY                20
 #define RET_JOIN_FAILED         (0x1000 | 0x01)
 
 #define RET_INVALID_COMMAND     (0x2000 | 0x01)

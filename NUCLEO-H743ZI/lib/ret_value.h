@@ -12,17 +12,18 @@ typedef int RET_VALUE;
 #define RET_INVALID_RESPONSE    5
 
 #define RET_ALREADY_STARTED     6
-#define RET_NOT_SUPPORTED_FUNCTION  7
-#define RET_TIMEOUT             8
+#define RET_NOT_RUNNING         7
+#define RET_NOT_SUPPORTED_FUNCTION  8
+#define RET_TIMEOUT             9
 
-#define RET_RESPONSE_TIMEOUT    9
+#define RET_RESPONSE_TIMEOUT    10
 
-#define RET_DATA_TOO_LONG       10
-#define RET_BUFFER_TOO_SMALL    11
+#define RET_DATA_TOO_LONG       11
+#define RET_BUFFER_TOO_SMALL    12
 
-#define RET_SOCKET_CLOSED       12
-#define RET_OUT_OF_RANGE        13
-#define RET_ALREADY_EXIST       14
+#define RET_SOCKET_CLOSED       13
+#define RET_OUT_OF_RANGE        14
+#define RET_ALREADY_EXIST       15
 
 #define RET_JOIN_FAILED         (0x1000 | 0x01)
 

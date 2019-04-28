@@ -61,16 +61,27 @@ void MAIN_taskEntry(void const * argument)
     TIME2_init();
     SCAN_init();
 
+    TRACE_setConfig(&config_.trace);
     SHELL_setConfig(&config_.shell);
     ADC_config(&config_.adc);
     SDRAM_setConfig(&config_.sdram);
     SCAN_setConfig(&config_.scan);
+    RF_setConfig(&config_.rf);
 
     SHELL_start();
-    ADC_start();
+    if (config_.adc.enable)
+    {
+        ADC_start();
+    }
+
+    if (config_.rf.enable)
+    {
+        RF_start();
+    }
 
     for(;;)
     {
+
         osDelay(1);
     }
 }

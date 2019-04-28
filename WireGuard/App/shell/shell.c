@@ -344,6 +344,11 @@ int SHELL_getLine( char* line, uint32_t maxLength, bool secure)
     return  readLength;
 }
 
+RET_VALUE   SHELL_getc(char* ch, uint32_t timeout)
+{
+    return  SERIAL_getc(serial_, (uint8_t *)ch, timeout);
+}
+
 uint32_t    SHELL_parser(char* line, char* arguments[], uint32_t maxArgumentCount )
 {
     char*   token;

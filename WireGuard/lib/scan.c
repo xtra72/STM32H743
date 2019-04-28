@@ -2,7 +2,8 @@
 #include "config.h"
 #include "adc.h"
 
-#define TRACE(...)  TRACE_printf("SCAN", __VA_ARGS__)
+#define __MODULE_NAME__ "SCAN"
+#include "trace.h"
 
 RET_VALUE   SCAN_startLoop(void);
 void SCAN_loopFinishedCallback(void const * argument);
@@ -87,7 +88,7 @@ RET_VALUE   SCAN_start()
     osTimerStart(timerLoopFinishedHandler, loopInterval_);
     loopRun_ = true;
 
-    TRACE("Scan started!\n");
+    DEBUG("Scan started!\n");
 
     return  RET_OK;
 }
@@ -99,7 +100,7 @@ RET_VALUE   SCAN_stop()
         osTimerStop(timerLoopFinishedHandler);
         timerLoopFinishedHandler = 0;
     }
-   TRACE("Scan stopped!\n");
+   DEBUG("Scan stopped!\n");
 
     return  RET_OK;
 }

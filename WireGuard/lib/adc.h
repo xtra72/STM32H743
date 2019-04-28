@@ -36,6 +36,7 @@ typedef struct
 
 typedef struct
 {
+    bool                enable;
     uint32_t            channelCount;
     ADC_CHANNEL_CONFIG  channels[ADC_CHANNEL_COUNT_MAX];
     uint32_t            dataCount;

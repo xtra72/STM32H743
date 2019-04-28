@@ -1,7 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <userBookmarks>
     <bookmark>
+        <path>D:\Projects\STM32H743\WireGuard\App\shell\shell_rf.c</path>
+        <row>211</row>
+    </bookmark>
+    <bookmark>
         <path>D:\Projects\STM32H743\WireGuard\Core\Src\stm32h7xx_it.c</path>
         <row>185</row>
+    </bookmark>
+    <bookmark>
+        <path>D:\Projects\STM32H743\WireGuard\lib\rf.c</path>
+        <row>262</row>
+    </bookmark>
+    <bookmark>
+        <path>D:\Projects\STM32H743\WireGuard\lib\rf.c</path>
+        <row>274</row>
+    </bookmark>
+    <bookmark>
+        <path>D:\Projects\STM32H743\WireGuard\lib\rf.c</path>
+        <row>321</row>
+    </bookmark>
+    <bookmark>
+        <path>D:\Projects\STM32H743\WireGuard\lib\rf.c</path>
+        <row>259</row>
+    </bookmark>
+    <bookmark>
+        <path>D:\Projects\STM32H743\WireGuard\lib\rf.c</path>
+        <row>278</row>
+    </bookmark>
+    <bookmark>
+        <path>D:\Projects\STM32H743\WireGuard\lib\rf.c</path>
+        <row>290</row>
+    </bookmark>
+    <bookmark>
+        <path>D:\Projects\STM32H743\WireGuard\lib\st\sx1231.c</path>
+        <row>326</row>
+    </bookmark>
+    <bookmark>
+        <path>D:\Projects\STM32H743\WireGuard\lib\st\sx1231.c</path>
+        <row>331</row>
+    </bookmark>
+    <bookmark>
+        <path>D:\Projects\STM32H743\WireGuard\lib\st\sx1231.c</path>
+        <row>219</row>
     </bookmark>
 </userBookmarks>

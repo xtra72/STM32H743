@@ -181,11 +181,9 @@ void ADC_IRQHandler(void)
 void EXTI9_5_IRQHandler(void)
 {
   /* USER CODE BEGIN EXTI9_5_IRQn 0 */
-  extern    void  RF_DIO0Callback();
   /* USER CODE END EXTI9_5_IRQn 0 */
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_5);
   /* USER CODE BEGIN EXTI9_5_IRQn 1 */
-    RF_DIO0Callback();
   /* USER CODE END EXTI9_5_IRQn 1 */
 }
 

@@ -34,9 +34,9 @@ static  uint16_t RegistersCfg[] =
 	SX1231_DEF_BITRATELSB | SX1231_RF_BITRATELSB_4800,
 	SX1231_DEF_FDEVMSB | SX1231_RF_FDEVMSB_5000,
 	SX1231_DEF_FDEVLSB | SX1231_RF_FDEVLSB_5000,
-	SX1231_DEF_FRFMSB | SX1231_RF_FRFMSB_922,
-	SX1231_DEF_FRFMID | SX1231_RF_FRFMID_922,
-	SX1231_DEF_FRFLSB | SX1231_RF_FRFLSB_922,
+	SX1231_DEF_FRFMSB | SX1231_RF_FRFMSB_915,
+	SX1231_DEF_FRFMID | SX1231_RF_FRFMID_915,
+	SX1231_DEF_FRFLSB | SX1231_RF_FRFLSB_915,
 	SX1231_DEF_OSC1,
 	SX1231_DEF_OSC2,
 	SX1231_DEF_LOWBAT | SX1231_RF_LOWBAT_OFF | SX1231_RF_LOWBAT_TRIM_1835,
@@ -306,7 +306,7 @@ uint8_t SX1231_receiveRfFrame(uint8_t *buffer, uint32_t bufferSize, uint32_t *_r
 
     while(!(state_ & SX1231_RF_STOP))
     {
-        osDelay(1);
+        osDelay();
     }
 
     if (state_ & (SX1231_RF_TIMEOUT | SX1231_RF_ERROR))
@@ -314,7 +314,10 @@ uint8_t SX1231_receiveRfFrame(uint8_t *buffer, uint32_t bufferSize, uint32_t *_r
         return  ERROR;
     }
 
-    *_receivedLength = receivedLength_;
+
+//    receivedLength_ = SX1231_receivePacket();
+
+//    *_receivedLength = receivedLength_;
 
     return  OK;
 } // void ReceiveRfFrame(uint8_t *buffer, uint8_t size, uint8_t *pReturnCode)
@@ -334,20 +337,24 @@ uint8_t SX1231_receiveStart(uint8_t* buffer, uint32_t bufferSize)
     SX1231_writeRegister(SX1231_REG_DIOMAPPING1, (RegistersCfg[SX1231_REG_DIOMAPPING1] & 0x3F) | SX1231_RF_DIOMAPPING1_DIO0_01); // DIO0 is "PAYLOADREADY"
     SX1231_writeRegister(SX1231_REG_SYNCCONFIG, (RegistersCfg[SX1231_REG_SYNCCONFIG] & 0xBF) | SX1231_RF_SYNC_FIFOFILL_AUTO);
 
-    //        RegIrqEnLow |= 0x04; // Enables Port A pin 2 interrupt DIO0 (PAYLOADREADY)
-
     SX1231_setRFMode(SX1231_RF_RECEIVER);
-    SX1231_enableTimeOut(true);
-    state_ |= SX1231_RF_BUSY | SX1231_RF_RX_WAIT;
+ //   SX1231_enableTimeOut(true);
+    state_ |= SX1231_RF_BUSY;
     state_ &= ~SX1231_RF_STOP;
     state_ &= ~SX1231_RF_TIMEOUT;
 
     return  OK;
 }
 
-uint8_t   SX1231_receiveDoneCallback(void)
+void    SX1231_receiveDoneCallback(void)
 {
-    uint32_t    receiveByte;
+
+    state_ |= SX1231_RF_STOP;
+}
+
+uint8_t SX1231_receivePacket(void)
+{
+    uint8_t    receiveByte;
 
     SX1231_setRFMode(SX1231_RF_SLEEP);
 
@@ -360,7 +367,8 @@ uint8_t   SX1231_receiveDoneCallback(void)
 
     state_ |= SX1231_RF_STOP;
 
-    SX1231_enableTimeOut(false);
+//    SX1231_enableTimeOut(false);
+    state_ |= SX1231_RF_STOP;
     state_ &= ~SX1231_RF_RX_DONE;
 
     return OK;

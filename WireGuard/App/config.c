@@ -43,6 +43,7 @@ const CONFIG  defaultConfig =
     .serialNumber=  "FCN-10S-00000000",
     .adc =
     {
+        .enable = true,
         .channelCount = 8,
         .channels =
         {
@@ -71,7 +72,11 @@ const CONFIG  defaultConfig =
     },
     .rf =
     {
-        .bitrate = 115200
+        .shortAddress = 0x0101,
+        .enable = true,
+        .confirmed = false,
+        .bitrate = 4800,
+        .maxPayloadLength = 60
     },
     .shell =
     {

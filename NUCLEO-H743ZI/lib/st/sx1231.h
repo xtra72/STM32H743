@@ -1421,5 +1421,7 @@ __weak  bool    SX1231_SPI_receive(uint8_t* buffer, uint32_t size, uint32_t time
 *******************************************************************/
 __weak  void SX1231_SPI_select(bool select);
 
-uint8_t   SX1231_receiveDoneCallback(void);
+void    SX1231_receiveDoneCallback(void);
+uint8_t SX1231_receivePacket(void);
+
 #endif /* __SX1231DRIVER__ */

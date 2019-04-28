@@ -57,10 +57,12 @@ void MAIN_taskEntry(void const * argument)
         CONFIG_loadDefault(&config_);
     }
 
+
     SHELL_init(shellCommands, sizeof(shellCommands) / sizeof(SHELL_COMMAND));
     TIME2_init();
     SCAN_init();
 
+    TRACE_init(&config_.trace);
     SHELL_setConfig(&config_.shell);
     ADC_config(&config_.adc);
 #if SUPPORT_SDRAM

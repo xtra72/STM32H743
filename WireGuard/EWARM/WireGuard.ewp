@@ -1077,7 +1077,7 @@
                 <group>
                     <name>task</name>
                     <file>
-                        <name>$PROJ_DIR$\..\App\rf_task.c</name>
+                        <name>$PROJ_DIR$\..\App\task_main.c</name>
                     </file>
                 </group>
                 <file>
@@ -1085,9 +1085,6 @@
                 </file>
                 <file>
                     <name>$PROJ_DIR$\..\App\shell_cmd.c</name>
-                </file>
-                <file>
-                    <name>$PROJ_DIR$\..\App\task_main.c</name>
                 </file>
             </group>
             <group>

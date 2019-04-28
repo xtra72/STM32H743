@@ -13,7 +13,6 @@
 #include "cmsis_os.h"
 #include "ret_value.h"
 #include "assert.h"
-#include "trace.h"
 
 
 #define TARGET_PRODUCT_NAME             "SWG"

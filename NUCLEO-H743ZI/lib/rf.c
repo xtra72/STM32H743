@@ -647,6 +647,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     }
     else if (SX1231_getPreviousMode() == SX1231_RF_RECEIVER)
     {
+        SX1231_receivePacket();
         rxCount++;
     }
 }

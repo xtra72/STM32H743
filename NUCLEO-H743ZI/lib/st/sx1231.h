@@ -30,12 +30,12 @@
 /*******************************************************************
 ** RF function return codes                                       **
 *******************************************************************/
-#define OK                   0x00
-#define ERROR                0x01
-#define RX_TIMEOUT           0x02
-#define RX_RUNNING           0x03
-#define TX_TIMEOUT           0x04
-#define TX_RUNNING           0x05
+#define SX1231_OK                   0x00
+#define SX1231_ERROR                0x01
+#define SX1231_RX_TIMEOUT           0x02
+#define SX1231_RX_RUNNING           0x03
+#define SX1231_TX_TIMEOUT           0x04
+#define SX1231_TX_RUNNING           0x05
 
 /*******************************************************************
 ** SX1231 definitions                                             **
@@ -1291,20 +1291,21 @@ uint16_t SX1231_readRegister(uint8_t address);
 *******************************************************************/
 
 /*******************************************************************
-** SendRfFrame : Sends a RF frame                                 **
+** SX1231_sendFrame : Sends a frame                                 **
 ********************************************************************
 ** In  : *buffer, size                                            **
 ** Out : *pReturnCode                                             **
 *******************************************************************/
-uint8_t SX1231_sendRfFrame(uint8_t *buffer, uint8_t size, uint32_t timeout);
+RET_VALUE   SX1231_sendFrame(uint8_t *buffer, uint8_t size, uint32_t timeout);
 
 /*******************************************************************
-** ReceiveRfFrame : Receives a RF frame                           **
+** SX1231_receiveFrame : Receives a frame                           **
 ********************************************************************
 ** In  : -                                                        **
 ** Out : *buffer, size, *pReturnCode                              **
 *******************************************************************/
-uint8_t SX1231_receiveRfFrame(uint8_t *buffer, uint32_t bufferSize, uint32_t *receivedLength);
+RET_VALUE   SX1231_receiveFrame(uint8_t *buffer, uint32_t bufferSize, uint32_t *receivedLength, uint32_t _timeout);
+RET_VALUE   SX1231_getReceivedFrame(uint8_t* _buffer, uint32_t _bufferSize, uint32_t* _frameLength);
 
 /*******************************************************************
 ** SendByte : Sends a data to the transceiver through the SPI      **
@@ -1421,7 +1422,7 @@ __weak  bool    SX1231_SPI_receive(uint8_t* buffer, uint32_t size, uint32_t time
 *******************************************************************/
 __weak  void SX1231_SPI_select(bool select);
 
-void    SX1231_receiveDoneCallback(void);
-uint8_t SX1231_receivePacket(void);
+RET_VALUE   SX1231_receiveCallback(void);
+RET_VALUE   SX1231_receiveCancel(void);
 
 #endif /* __SX1231DRIVER__ */

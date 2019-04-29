@@ -24,6 +24,13 @@ typedef int RET_VALUE;
 #define RET_SOCKET_CLOSED       13
 #define RET_OUT_OF_RANGE        14
 #define RET_ALREADY_EXIST       15
+#define RET_IGNORE_FARME        16
+
+#define RET_BUSY                20
+#define RET_EMPTY               21
+#define RET_FRAME_TOO_SHORT     22
+#define RET_FRAME_INVALID       23
+#define RET_NACK                24
 
 #define RET_JOIN_FAILED         (0x1000 | 0x01)
 

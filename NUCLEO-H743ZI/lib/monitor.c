@@ -1,10 +1,10 @@
 #include "target.h"
 #include "monitor.h"
-#include "trace.h"
 #include "adc.h"
 #include "shell.h"
 
-#define TRACE(...)  TRACE_printf("MON", __VA_ARGS__)
+#define __MODULE_NAME__ "MON"
+#include "trace.h"
 
 static  void    MONITOR_monitorCallback(void const * argument);
 
@@ -15,7 +15,7 @@ RET_VALUE   MONITOR_start()
 {
     if (!timerRun)
     {
-        TRACE("Monitoring has already started!\n");
+        DEBUG("Monitoring has already started!\n");
         return  RET_OK;
     }
 
@@ -28,7 +28,7 @@ RET_VALUE   MONITOR_start()
     osTimerStart(timerTraceMonitorHandle, 1000);
     timerRun = true;
 
-    TRACE("Monitoring started!\n");
+    DEBUG("Monitoring started!\n");
 
     return  RET_OK;
 }
@@ -39,11 +39,11 @@ RET_VALUE   MONITOR_stop()
     {
         osTimerStop(timerTraceMonitorHandle);
 
-        TRACE("Monitoring stopped!\n");
+        DEBUG("Monitoring stopped!\n");
     }
     else
     {
-        TRACE("Monitoring has not started!\n");
+        DEBUG("Monitoring has not started!\n");
     }
 
     return  RET_OK;

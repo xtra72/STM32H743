@@ -63,12 +63,20 @@ void MAIN_taskEntry(void const * argument)
 
     TRACE_setConfig(&config_.trace);
     SHELL_setConfig(&config_.shell);
+#if SUPPORT_COM
+    COM_setConfig(&config_.comport);
+#endif
     ADC_config(&config_.adc);
+#if SUPPORT_DRAM
     SDRAM_setConfig(&config_.sdram);
+#endif
     SCAN_setConfig(&config_.scan);
     RF_setConfig(&config_.rf);
 
     SHELL_start();
+#if SUPPORT_COM
+    COM_start();
+#endif
     if (config_.adc.enable)
     {
         ADC_start();

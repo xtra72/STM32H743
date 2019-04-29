@@ -46,8 +46,10 @@ RET_VALUE   SHELL_start(void);
 RET_VALUE   SHELL_stop(void);
 
 int         SHELL_getLine(char* line, uint32_t maxLength, bool secure);
+RET_VALUE   SHELL_getc(char* ch, uint32_t timeout);
 RET_VALUE   SHELL_printf(const char *format, ...);
 RET_VALUE   SHELL_print(char* string);
 RET_VALUE   SHELL_print2(char *title, char* buffer);
 RET_VALUE   SHELL_dump(uint8_t *buffer, uint32_t length);
+
 #endif

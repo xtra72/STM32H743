@@ -1,8 +1,8 @@
 #include "target.h"
 #include "adc.h"
-#include "trace.h"
 
-#define TRACE(...)  TRACE_printf("ADC", __VA_ARGS__)
+#define __MODULE_NAME__     "ADC"
+#include "trace.h"
 
 /* ADC handle declaration */
 ADC_CALLBACK    ADC_callback = NULL;
@@ -51,7 +51,7 @@ RET_VALUE   ADC_config(ADC_CONFIG* config)
 
     if (config->channelCount == 0)
     {
-        TRACE("ADC count is 0.\n");
+        DEBUG("ADC count is 0.\n");
         return  RET_ERROR;
     }
 
@@ -133,7 +133,7 @@ RET_VALUE   ADC_CHANNEL_start(uint32_t channelId)
 {
     if (channelCount <= channelId)
     {
-        TRACE("Out of range(< %d)\n", channelCount);
+        DEBUG("Out of range(< %d)\n", channelCount);
         return  RET_ERROR;
     }
 
@@ -141,13 +141,13 @@ RET_VALUE   ADC_CHANNEL_start(uint32_t channelId)
 
     if (HAL_ADC_ConfigChannel(channels[currentChannelId].handle, &channels[currentChannelId].config) != HAL_OK)
     {
-        TRACE("The ADC failed to config channel.\n");
+        DEBUG("The ADC failed to config channel.\n");
         return RET_ERROR;
     }
 
     if (HAL_ADC_Start_IT(channels[currentChannelId].handle) != HAL_OK)
     {
-        TRACE("The ADC failed to start the conversion process.\n");
+        DEBUG("The ADC failed to start the conversion process.\n");
         return RET_ERROR;
     }
 

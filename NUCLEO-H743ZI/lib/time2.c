@@ -1,6 +1,7 @@
 #include "time2.h"
 
-#define TRACE(...)  TRACE_printf("TIME", __VA_ARGS__)
+#define __MODULE_NAME__ "TIME"
+#include "trace.h"
 
 static  RTC_HandleTypeDef hrtc_;
 static  uint32_t    timeZone_ = 9*60*60;
@@ -92,7 +93,7 @@ RET_VALUE   TIME2_set(TIME2 value)
     rtcTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
     rtcTime.StoreOperation = RTC_STOREOPERATION_RESET;
 
-    TRACE("Save Time : %d-%02d-%02d %02d:%02d:%02d\n", 2000+rtcDate.Year, rtcDate.Month, rtcDate.Date, rtcTime.Hours, rtcTime.Minutes, rtcTime.Seconds);
+    DEBUG("Save Time : %d-%02d-%02d %02d:%02d:%02d\n", 2000+rtcDate.Year, rtcDate.Month, rtcDate.Date, rtcTime.Hours, rtcTime.Minutes, rtcTime.Seconds);
 
   if (HAL_RTC_SetTime(&hrtc_, &rtcTime, RTC_FORMAT_BIN) != HAL_OK)
   {
@@ -166,11 +167,6 @@ uint32_t    TIME2_getTimeZone(void)
 {
     return  timeZone_;
 }
-uint32_t    FI_TICK_get(void)
-{
-    return  (uint32_t)xTaskGetTickCount();
-}
-
 RET_VALUE   TIME2_getAlarm(FI_CLOCK* clock)
 {
     RTC_AlarmTypeDef alarm;
@@ -203,11 +199,11 @@ RET_VALUE    TIME2_setAlarm(FI_CLOCK clock)
 
     if (HAL_RTC_SetAlarm_IT(&hrtc_, &sAlarm, RTC_FORMAT_BIN) != HAL_OK)
     {
-        TRACE(" WakeUp set error!\n");
+        DEBUG(" WakeUp set error!\n");
         return  RET_ERROR;
     }
 
-    TRACE(" WakeUp Time : %02d:%02d:%02d\n",     sAlarm.AlarmTime.Hours, sAlarm.AlarmTime.Minutes, sAlarm.AlarmTime.Seconds);
+    DEBUG(" WakeUp Time : %02d:%02d:%02d\n",     sAlarm.AlarmTime.Hours, sAlarm.AlarmTime.Minutes, sAlarm.AlarmTime.Seconds);
 
 
     /* Reactivate LSI clock if it has been stopped by system reset */
@@ -260,6 +256,12 @@ void RTC_WKUP_IRQHandler(void)
 
 void RTC_Alarm_IRQHandler(void)
 {
-    TRACE("Alarm!\n");
+    DEBUG("Alarm!\n");
   HAL_RTC_AlarmIRQHandler(&hrtc_);
 }
+
+uint32_t    TICK_get(void)
+{
+    return  (uint32_t)xTaskGetTickCount();
+}
+

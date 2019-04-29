@@ -3,6 +3,7 @@
 
 #include "target.h"
 #include "shell.h"
+#include "comport.h"
 #include "adc.h"
 #include "sdram.h"
 #include "time2.h"
@@ -51,6 +52,7 @@ typedef struct
 
     SCAN_CONFIG     scan;
     SHELL_CONFIG    shell;
+    COM_CONFIG      comport;
     TRACE_CONFIG    trace;
 }   CONFIG;
 

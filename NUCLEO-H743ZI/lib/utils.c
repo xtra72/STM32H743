@@ -3,6 +3,33 @@
 #include <ctype.h>
 #include "utils.h"
 
+
+bool    strToUint8(char* string, uint8_t* value)
+{
+    if ((string == NULL) || (strlen(string) == 0))
+    {
+        return  false;
+    }
+
+    for(int i = 0 ; i < strlen(string) ; i++)
+    {
+        if (!isdigit(string[i]))
+        {
+            return  false;
+        }
+    }
+
+    uint32_t    temp = strtoul(string, 0, 10);
+    if (temp > (uint32_t)UINT8_MAX)
+    {
+        return  false;
+    }
+
+    *value = (uint8_t)temp;
+
+    return  true;
+}
+
 bool    strToUint16(char* string, uint16_t* value)
 {
     if ((string == NULL) || (strlen(string) == 0))
@@ -48,6 +75,27 @@ bool    strToUint32(char* string, uint32_t* value)
 
     return  true;
 }
+
+bool    strToHex16(char* string, uint16_t* value)
+{
+    if ((string == NULL) || (strlen(string) == 0))
+    {
+        return  false;
+    }
+
+    for(int i = 0 ; i < strlen(string) ; i++)
+    {
+        if (!(isdigit(string[i]) || ('a' <= string[i] && string[i] <= 'f') || ('A' <= string[i] && string[i] <= 'F')))
+        {
+            return  false;
+        }
+    }
+
+    *value = (uint16_t)strtoul(string, 0, 16);
+
+    return  true;
+}
+
 
 bool    strToHex32(char* string, uint32_t* value)
 {

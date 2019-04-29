@@ -1,163 +1,69 @@
 #include "target.h"
 #include "sx1231.h"
 #include "rf.h"
+#include "crc16.h"
+#include "time2.h"
+#include "scan.h"
+
+#ifndef RF_BUFFER_SIZE_MAX
+#define RF_BUFFER_SIZE_MAX  SX1231_RF_BUFFER_SIZE_MAX
+#endif
+
+#define RF_FRAME_OVERHEAD_SIZE  11
+
+#ifndef RF_PAYLOAD_SIZE_MAX
+#define RF_PAYLOAD_SIZE_MAX  (RF_BUFFER_SIZE_MAX - RF_FRAME_OVERHEAD_SIZE)
+#endif
+
+#define __MODULE_NAME__ "RF"
 #include "trace.h"
 
-#define TRACE(...)  TRACE_printf("RF", __VA_ARGS__)
-
-typedef enum
-{
-    RF_CMD_STOP,
-    RF_CMD_READ_REG,
-    RF_CMD_TEST_SEND,
-    RF_CMD_TEST_RECV,
-    RF_CMD_TEST_STOP,
-}   RF_CMD;
-
-typedef struct
-{
-    RF_CMD  cmd;
-    bool    inProgress;
-    bool    invalid;
-}   RF_MESSAGE;
-
-typedef struct
-{
-    RF_CMD  cmd;
-    bool    inProgress;
-    bool    invalid;
-    uint8_t startAddress;
-
-}   RF_MESSAGE_READ_REG;
-
-typedef struct
-{
-    uint8_t payload[256];
-    uint32_t size;
-    uint32_t interval;
-    uint32_t count;
-    uint32_t countMax;
-}   RF_MESSAGE_TEST_SEND_PARAMS;
-
-typedef struct
-{
-    RF_CMD  cmd;
-    bool    inProgress;
-    bool    invalid;
-    RF_MESSAGE_TEST_SEND_PARAMS params;
-}   RF_MESSAGE_TEST_SEND;
-
-typedef struct
-{
-    uint8_t payload[256];
-    uint32_t receivedLength;
-    uint32_t interval;
-    uint32_t timeout;
-    uint32_t count;
-    uint32_t countMax;
-}   RF_MESSAGE_TEST_RECV_PARAMS;
-
-typedef struct
-{
-    RF_CMD  cmd;
-    bool    inProgress;
-    bool    invalid;
-    RF_MESSAGE_TEST_RECV_PARAMS params;
-}   RF_MESSAGE_TEST_RECV;
-
 static  void RF_taskMain(void const * argument);
-static  RET_VALUE   RF_internalTestSendStart(uint8_t* buffer, uint32_t size, uint32_t interval, uint32_t count);
-static  RET_VALUE   RF_internalTestRecvStart(uint32_t interval, uint32_t timeout);
-static  void        RF_internalTestSendCallback(void const * argument);
-static  void        RF_internalTestRecvCallback(void const * argument);
-static  RET_VALUE   RF_internalTestStop(void);
-static  void    RF_receiveTimeoutCallback(void const * params);
 
 static  SPI_HandleTypeDef*  spi_ = NULL;
 
-static  uint32_t            bitrate_ = 300000;
-static   QueueHandle_t      messageQueueHandle_;
+static  RF_CONFIG           config_ =
+{
+    .shortAddress = 0x0000,
+    .confirmed = false,
+    .bitrate = 4800,
+    .maxPayloadLength = RF_PAYLOAD_SIZE_MAX
+};
+
 static  osThreadId          threadId_ = NULL;
 static  bool                stop_ = true;
 static  SemaphoreHandle_t   semaphore_ = NULL;
 static  RF_STATUS           status_ = RF_STATUS_STOPPED;
-static  osTimerId           testSendHandle = NULL;
-static  osTimerId           testRecvHandle = NULL;
-static  osTimerId           receiveTimeoutHandle = NULL;
-static  uint32_t            rxWaitCount = 0;
-static  uint32_t            rxCount = 0;
-static  uint32_t            txCount = 0;
+static  uint16_t            upCount_ = 0;
 
-static  RF_MESSAGE_TEST_SEND_PARAMS testSendParams_ =
+static  RF_STATISTICS       statistics_ =
 {
-    .size = 0,
-    .interval = 0,
-    .count = 0
-};
-static  RF_MESSAGE_TEST_RECV_PARAMS testRecvParams_ =
-{
-    .interval = 0,
-    .count = 0
+    .Rx =
+    {
+        .count = 0,
+        .ack = 0
+    },
+    .Tx =
+    {
+        .count = 0,
+        .ack = 0
+    }
 };
 
 static  const char*   statusStrings_[] =
 {
     "Stopped",      //RF_STATUS_STOPPED
     "Ready",        //RF_STATUS_READY,
-    "Test Send",    //RF_STATUS_TEST_SEND,
-    "Test Recv",    //RF_STATUS_TEST_RECV,
+    "Send",         //RF_STATUS_SEND,
+    "Recv",         //RF_STATUS_RECV,
 };
 
 RET_VALUE   RF_init(SPI_HandleTypeDef* spi)
 {
-    messageQueueHandle_ = xQueueCreate( 16, sizeof( void* ) );
     semaphore_ = xSemaphoreCreateMutex();
     spi_ = spi;
 
-    osTimerDef(timerTestSend, RF_internalTestSendCallback);
-    testSendHandle = osTimerCreate(osTimer(timerTestSend), osTimerPeriodic, &testSendParams_);
-
-    osTimerDef(timerTestRecv, RF_internalTestRecvCallback);
-    testRecvHandle = osTimerCreate(osTimer(timerTestRecv), osTimerPeriodic, &testSendParams_);
-
-    osTimerDef(timerRxTimeout, RF_receiveTimeoutCallback);
-    receiveTimeoutHandle = osTimerCreate(osTimer(timerRxTimeout), osTimerPeriodic, NULL);
-
-
     SX1231_init();
-
-    return  RET_OK;
-}
-
-RF_STATUS   RF_getStatus(void)
-{
-    return  status_;
-}
-
-const char*       RF_getStatusString(RF_STATUS status)
-{
-    if (status < RF_STATUS_MAX)
-    {
-        return  statusStrings_[status];
-    }
-
-    return  "Unknown";
-}
-
-RET_VALUE   RF_setConfig(RF_CONFIG* config)
-{
-    ASSERT(config);
-
-    bitrate_ = config->bitrate;
-
-    return  RET_OK;
-}
-
-RET_VALUE   RF_getConfig(RF_CONFIG* config)
-{
-    ASSERT(config);
-
-    config->bitrate = bitrate_;
 
     return  RET_OK;
 }
@@ -183,88 +89,84 @@ RET_VALUE   RF_stop(void)
 {
     RET_VALUE   ret = RET_OK;
 
-    RF_MESSAGE* message = pvPortMalloc(sizeof(RF_MESSAGE));
-    if (message != NULL)
+    while(!stop_)
     {
-        message->cmd = RF_CMD_STOP;
-
-        while(!stop_)
-        {
-            osDelay(1);
-        }
-
-        osThreadTerminate(threadId_);
-        threadId_ = NULL;
+        osDelay(1);
     }
-    else
-    {
-        ret = RET_NOT_ENOUGH_MEMORY;
-    }
+
+    osThreadTerminate(threadId_);
+    threadId_ = NULL;
 
     return  ret;
 }
 
 void RF_taskMain(void const * argument)
 {
-    RF_MESSAGE*  message;
+    DEBUG("RF task start!\n");
 
-    TRACE("RF task start!\n");
-
+    uint8_t     buffer[RF_BUFFER_SIZE_MAX];
+    uint32_t    dataLength = 0;
     RF_reset();
 
     SX1231_initRFChip();
+
+    RF_setConfig(&config_);
 
     status_ = RF_STATUS_READY;
     stop_ = false;
 
     while(!stop_)
     {
-        if( xQueueReceive( messageQueueHandle_, &(message), ( TickType_t ) 10 ) )
-		{
-            message->inProgress = true;
-            if (message->cmd == RF_CMD_STOP)
+        uint16_t    srcAddress = 0;
+        uint8_t     port = 0;
+        uint8_t     options = 0;
+
+        if (RF_recv(buffer, sizeof(buffer), &dataLength, &srcAddress, &port, &options, 10000) == RET_OK)
+        {
+            if (2 < dataLength)
             {
-                vPortFree(message);
-                break;
+#if 1
+                DEBUG("RCVD : %d\n", dataLength);
+#else
+                DEBUG_DUMP("RCVD", buffer, dataLength, 0);
+#endif
+
+                if (port == 0x80)
+                {
+                    switch(buffer[0])
+                    {
+                    case    RF_CMD_START_SCAN:
+                        {
+                            SCAN_start();
+                        }
+                        break;
+
+                    case    RF_CMD_STOP_SCAN:
+                        {
+                            SCAN_stop();
+                        }
+                        break;
+                    }
+
+                    if (config_.confirmed)
+                    {
+                        RF_send(srcAddress, port, NULL, 0, 1, 1000);
+                        DEBUG("Ack sent\n");
+                    }
+                }
+            }
+            else
+            {
+                DEBUG("Payload length is too short[%d]\n", dataLength);
             }
 
-            switch(message->cmd)
+            if (options & 0x01)
             {
-            case    RF_CMD_READ_REG:
-                {
-
-                }
-                break;
-
-            case    RF_CMD_TEST_SEND:
-                {
-                    RF_MESSAGE_TEST_SEND*   messageTestSend =(RF_MESSAGE_TEST_SEND*)message;
-
-                    RF_internalTestSendStart(messageTestSend->params.payload, messageTestSend->params.size, messageTestSend->params.interval, messageTestSend->params.count);
-                }
-                break;
-
-            case    RF_CMD_TEST_RECV:
-                {
-                    RF_MESSAGE_TEST_RECV*   messageTestRecv =(RF_MESSAGE_TEST_RECV*)message;
-
-                    RF_internalTestRecvStart(messageTestRecv->params.interval, messageTestRecv->params.timeout);
-                }
-                break;
-
-            case    RF_CMD_TEST_STOP:
-                {
-                    RF_internalTestStop();
-                }
-                break;
+                DEBUG("ACK\n");
             }
-            vPortFree(message);
         }
-    }
 
-    while( xQueueReceive( messageQueueHandle_, &(message), ( TickType_t ) 0 ) )
-    {
-        vPortFree(message);
+        osDelay(1);
     }
 
     stop_ = true;
@@ -275,44 +177,137 @@ void RF_taskMain(void const * argument)
 
 typedef struct
 {
-    uint32_t    bitrate;
-    uint8_t     msb;
-    uint8_t     lsb;
+    uint32_t    speed;
+    struct
+    {
+        uint8_t     msb;
+        uint8_t     lsb;
+    }   bitrate;
+    struct
+    {
+        uint8_t     msb;
+        uint8_t     lsb;
+    }   fdev;
+
 }   RF_BIT_RATE;
 
 RF_BIT_RATE bitrateTables [] =
 {
-    {   1200,   SX1231_RF_BITRATELSB_1200,  SX1231_RF_BITRATELSB_1200 },
-    {   2400,   SX1231_RF_BITRATEMSB_2400,  SX1231_RF_BITRATELSB_2400 },
-    {   4800,   SX1231_RF_BITRATEMSB_4800,  SX1231_RF_BITRATELSB_4800 },
-    {   9600,   SX1231_RF_BITRATEMSB_9600,  SX1231_RF_BITRATELSB_9600 },
-    {   12500,  SX1231_RF_BITRATEMSB_12500, SX1231_RF_BITRATELSB_12500 },
-    {   19200,  SX1231_RF_BITRATEMSB_19200, SX1231_RF_BITRATELSB_19200 },
-    {   25000,  SX1231_RF_BITRATEMSB_25000, SX1231_RF_BITRATELSB_25000 },
-    {   32768,  SX1231_RF_BITRATEMSB_32768, SX1231_RF_BITRATELSB_32768 },
-    {   38400,  SX1231_RF_BITRATEMSB_38400, SX1231_RF_BITRATELSB_38400 },
-    {   50000,  SX1231_RF_BITRATEMSB_50000, SX1231_RF_BITRATELSB_50000 },
-    {   57600,  SX1231_RF_BITRATEMSB_57600, SX1231_RF_BITRATELSB_57600 },
-    {   76800,  SX1231_RF_BITRATEMSB_76800, SX1231_RF_BITRATELSB_76800 },
-    {   100000, SX1231_RF_BITRATEMSB_100000,SX1231_RF_BITRATELSB_100000 },
-    {   115200, SX1231_RF_BITRATEMSB_115200,SX1231_RF_BITRATELSB_115200 },
-    {   150000, SX1231_RF_BITRATEMSB_150000,SX1231_RF_BITRATELSB_150000 },
-    {   153600, SX1231_RF_BITRATEMSB_153600,SX1231_RF_BITRATELSB_153600 },
-    {   200000, SX1231_RF_BITRATEMSB_200000,SX1231_RF_BITRATELSB_200000 },
-    {   250000, SX1231_RF_BITRATEMSB_250000,SX1231_RF_BITRATELSB_250000 },
-    {   300000, SX1231_RF_BITRATEMSB_300000,SX1231_RF_BITRATELSB_300000 },
+    {   1200,   SX1231_RF_BITRATELSB_1200,  SX1231_RF_BITRATELSB_1200,  SX1231_RF_FDEVMSB_2000,     SX1231_RF_FDEVLSB_2000},
+    {   2400,   SX1231_RF_BITRATEMSB_2400,  SX1231_RF_BITRATELSB_2400,  SX1231_RF_FDEVMSB_5000,     SX1231_RF_FDEVLSB_5000},
+    {   4800,   SX1231_RF_BITRATEMSB_4800,  SX1231_RF_BITRATELSB_4800,  SX1231_RF_FDEVMSB_5000,     SX1231_RF_FDEVLSB_5000},
+    {   9600,   SX1231_RF_BITRATEMSB_9600,  SX1231_RF_BITRATELSB_9600,  SX1231_RF_FDEVMSB_10000,    SX1231_RF_FDEVLSB_10000},
+    {   12500,  SX1231_RF_BITRATEMSB_12500, SX1231_RF_BITRATELSB_12500, SX1231_RF_FDEVMSB_15000,    SX1231_RF_FDEVLSB_15000},
+    {   19200,  SX1231_RF_BITRATEMSB_19200, SX1231_RF_BITRATELSB_19200, SX1231_RF_FDEVMSB_20000,    SX1231_RF_FDEVLSB_20000},
+    {   25000,  SX1231_RF_BITRATEMSB_25000, SX1231_RF_BITRATELSB_25000, SX1231_RF_FDEVMSB_25000,    SX1231_RF_FDEVLSB_25000},
+    {   32768,  SX1231_RF_BITRATEMSB_32768, SX1231_RF_BITRATELSB_32768, SX1231_RF_FDEVMSB_35000,    SX1231_RF_FDEVLSB_35000},
+    {   38400,  SX1231_RF_BITRATEMSB_38400, SX1231_RF_BITRATELSB_38400, SX1231_RF_FDEVMSB_40000,    SX1231_RF_FDEVLSB_40000},
+    {   50000,  SX1231_RF_BITRATEMSB_50000, SX1231_RF_BITRATELSB_50000, SX1231_RF_FDEVMSB_50000,    SX1231_RF_FDEVLSB_50000},
+    {   57600,  SX1231_RF_BITRATEMSB_57600, SX1231_RF_BITRATELSB_57600, SX1231_RF_FDEVMSB_60000,    SX1231_RF_FDEVLSB_60000},
+    {   76800,  SX1231_RF_BITRATEMSB_76800, SX1231_RF_BITRATELSB_76800, SX1231_RF_FDEVMSB_80000,    SX1231_RF_FDEVLSB_80000},
+    {   100000, SX1231_RF_BITRATEMSB_100000,SX1231_RF_BITRATELSB_100000,SX1231_RF_FDEVMSB_100000 ,  SX1231_RF_FDEVLSB_100000},
+    {   115200, SX1231_RF_BITRATEMSB_115200,SX1231_RF_BITRATELSB_115200,SX1231_RF_FDEVMSB_120000,   SX1231_RF_FDEVLSB_120000},
+    {   150000, SX1231_RF_BITRATEMSB_150000,SX1231_RF_BITRATELSB_150000,SX1231_RF_FDEVMSB_150000,   SX1231_RF_FDEVLSB_150000},
+    {   153600, SX1231_RF_BITRATEMSB_153600,SX1231_RF_BITRATELSB_153600,SX1231_RF_FDEVMSB_160000,   SX1231_RF_FDEVLSB_160000},
+    {   200000, SX1231_RF_BITRATEMSB_200000,SX1231_RF_BITRATELSB_200000,SX1231_RF_FDEVMSB_200000,   SX1231_RF_FDEVLSB_200000},
+    {   250000, SX1231_RF_BITRATEMSB_250000,SX1231_RF_BITRATELSB_250000,SX1231_RF_FDEVMSB_250000,   SX1231_RF_FDEVLSB_250000},
+    {   300000, SX1231_RF_BITRATEMSB_300000,SX1231_RF_BITRATELSB_300000,SX1231_RF_FDEVMSB_300000,   SX1231_RF_FDEVLSB_300000},
     {   0,      0,                          0}
 };
 
+
+RF_STATUS   RF_getStatus(void)
+{
+    return  status_;
+}
+
+const char*       RF_getStatusString(RF_STATUS status)
+{
+    if (status < RF_STATUS_MAX)
+    {
+        return  statusStrings_[status];
+    }
+
+    return  "Unknown";
+}
+
+RET_VALUE   RF_setConfig(RF_CONFIG* config)
+{
+    ASSERT(config);
+
+    RF_setConfirmed(config->confirmed);
+    RF_setBitrate(config->bitrate);
+    RF_setMaxPayloadLength(config->maxPayloadLength);
+
+    memcpy(&config_, config, sizeof(RF_CONFIG));
+
+    return  RET_OK;
+}
+
+RET_VALUE   RF_getConfig(RF_CONFIG* config)
+{
+    ASSERT(config);
+
+    memcpy(config, &config_, sizeof(RF_CONFIG));
+
+    return  RET_OK;
+}
+
+RET_VALUE   RF_setConfirmed(bool confirmed)
+{
+    config_.confirmed = confirmed;
+
+    return  RET_OK;
+}
+
+bool    RF_getConfirmed(void)
+{
+    return  config_.confirmed;
+}
+
+uint16_t    RF_getShortAddress(void)
+{
+    return  config_.shortAddress;
+}
+
+RET_VALUE   RF_setShortAddress(uint16_t _shortAddress)
+{
+    config_.shortAddress = _shortAddress;
+
+    return  RET_OK;
+}
+
+RET_VALUE   RF_setMaxPayloadLength(uint32_t _maxPayloadLength)
+{
+    if (_maxPayloadLength < RF_PAYLOAD_SIZE_MAX)
+    {
+        config_.maxPayloadLength = _maxPayloadLength;
+
+        return  RET_OK;
+    }
+
+    return  RET_ERROR;
+}
+
+uint32_t    RF_getMaxPayloadLength(void)
+{
+    return  config_.maxPayloadLength;
+}
+
 RET_VALUE   RF_setBitrate(uint32_t bitrate)
 {
-    for(int i = 1 ; bitrateTables[i].bitrate != 0; i++)
+    for(int i = 1 ; bitrateTables[i].speed != 0; i++)
     {
-        if (bitrate < bitrateTables[i].bitrate)
+        if (bitrate < bitrateTables[i].speed)
         {
-            SX1231_writeRegister(SX1231_REG_BITRATEMSB, bitrateTables[i-1].msb);
-            SX1231_writeRegister(SX1231_REG_BITRATELSB, bitrateTables[i-1].lsb);
-            bitrate_ = bitrateTables[i].bitrate;
+            if (threadId_)
+            {
+                SX1231_writeRegister(SX1231_REG_BITRATEMSB, bitrateTables[i-1].bitrate.msb);
+                SX1231_writeRegister(SX1231_REG_BITRATELSB, bitrateTables[i-1].bitrate.lsb);
+//                SX1231_writeRegister(SX1231_REG_FDEVMSB, bitrateTables[i-1].fdev.msb);
+//                SX1231_writeRegister(SX1231_REG_FDEVLSB, bitrateTables[i-1].fdev.lsb);
+            }
+            config_.bitrate = bitrateTables[i - 1].speed;
 
             return  RET_OK;
         }
@@ -323,31 +318,21 @@ RET_VALUE   RF_setBitrate(uint32_t bitrate)
 
 uint32_t    RF_getBitrate(void)
 {
-    return  bitrate_;
+    return  config_.bitrate;
 }
 
 uint8_t RF_readRegister(uint8_t    address)
 {
     uint8_t value = 0;
 
-    if( xSemaphoreTake( semaphore_, ( TickType_t ) 10 ) == pdTRUE )
-    {
-        value = SX1231_readRegister(address);
-
-        xSemaphoreGive( semaphore_ );
-    }
+    value = SX1231_readRegister(address);
 
     return  value;
 }
 
 void    RF_writeRegister(uint8_t    address, uint8_t value)
 {
-    if( xSemaphoreTake( semaphore_, ( TickType_t ) 10 ) == pdTRUE )
-    {
-        SX1231_writeRegister(address, value);
-
-        xSemaphoreGive( semaphore_ );
-    }
+    SX1231_writeRegister(address, value);
 }
 
 void    RF_reset(void)
@@ -358,240 +343,176 @@ void    RF_reset(void)
     osDelay(5);
 }
 
-RET_VALUE   RF_send(uint8_t* buffer, uint32_t size, uint32_t timeout)
+RET_VALUE   RF_send(uint16_t _destAddress, uint8_t _port, uint8_t* _data, uint32_t _dataSize, uint8_t _options, uint32_t timeout)
 {
-    uint8_t ret = ERROR;
+    uint8_t ret = RET_ERROR;
+    TickType_t  tickStart  = xTaskGetTickCount();
+    TickType_t  tickTimeout = timeout / portTICK_PERIOD_MS;
+    uint8_t     frameBuffer[RF_BUFFER_SIZE_MAX];
+    uint32_t    frameLength = 0;
 
-    if( xSemaphoreTake( semaphore_, ( TickType_t ) timeout / portTICK_PERIOD_MS) == pdTRUE )
+    if (config_.maxPayloadLength < _dataSize)
     {
-        TRACE("RF send!\n");
-        ret = SX1231_sendRfFrame(buffer, size, timeout);
-
-        xSemaphoreGive( semaphore_ );
+        DEBUG("Data is too long\n");
+        return  RET_OUT_OF_RANGE;
     }
 
-    if (ret != OK)
+    while( xSemaphoreTake( semaphore_, 0) != pdTRUE )
     {
-        TRACE("RF send failed!\n");
-        return  RET_ERROR;
+        if (tickTimeout < xTaskGetTickCount() - tickStart)
+        {
+            DEBUG("RF send failed!\n");
+            return  RET_ERROR;
+        }
+
+        SX1231_receiveCancel();
+        osDelay(1);
     }
 
-    TRACE("RF send success!\n");
-    return  RET_OK;
-}
+    DEBUG("CHK");
 
-RET_VALUE   RF_recv(uint8_t* buffer, uint32_t bufferSize, uint32_t* receivedLength, uint32_t timeout)
-{
-    uint8_t ret = ERROR;
-
-
-    ++rxWaitCount;
-    osTimerStart(receiveTimeoutHandle, timeout);
-
-    if( xSemaphoreTake( semaphore_, ( TickType_t ) timeout / portTICK_PERIOD_MS) == pdTRUE )
+    if (tickTimeout <= (TICK_get() - tickStart))
     {
-        uint32_t length;
-
-        TRACE("RF receive!\n");
-        ret  = SX1231_receiveRfFrame(buffer, bufferSize, &length);
-
-        *receivedLength = length;
-
-        xSemaphoreGive( semaphore_ );
-    }
-
-    if (ret != OK)
-    {
-        TRACE("RF receive failed : [%4d / %4d]\n", rxCount, rxWaitCount);
-        return  RET_ERROR;
-    }
-
-    TRACE("RF receive success : [%4d / %4d]\n", rxCount, rxWaitCount);
-    return  RET_OK;
-}
-
-RET_VALUE   RF_testSend(uint8_t* buffer, uint32_t size, uint32_t interval, uint32_t count)
-{
-    RF_MESSAGE_TEST_SEND*   message = pvPortMalloc(sizeof(RF_MESSAGE_TEST_SEND));
-
-    if (!message)
-    {
-        return  RET_NOT_ENOUGH_MEMORY;
-    }
-
-    message->cmd = RF_CMD_TEST_SEND;
-    memcpy(message->params.payload, buffer, size);
-    message->params.size = size;
-    message->params.interval = interval;
-    message->params.count = 0;
-    message->params.countMax = count;
-
-    if (xQueueSend( messageQueueHandle_, &message, ( TickType_t ) 10 ) == pdPASS)
-    {
-        return  RET_OK;
-    }
-
-    vPortFree(message);
-
-    return  RET_ERROR;
-}
-
-RET_VALUE   RF_testRecv(uint32_t interval, uint32_t timeout)
-{
-    RF_MESSAGE_TEST_RECV*   message = pvPortMalloc(sizeof(RF_MESSAGE_TEST_RECV));
-
-    if (!message)
-    {
-        return  RET_NOT_ENOUGH_MEMORY;
-    }
-
-    message->cmd = RF_CMD_TEST_RECV;
-    message->params.interval = interval;
-    message->params.timeout = timeout;
-
-    if (xQueueSend( messageQueueHandle_, &message, ( TickType_t ) 10 ) == pdPASS)
-    {
-        return  RET_OK;
-    }
-
-    vPortFree(message);
-
-    return  RET_ERROR;
-}
-
-RET_VALUE   RF_testStop()
-{
-    RF_MESSAGE*   message = pvPortMalloc(sizeof(RF_MESSAGE));
-
-    if (!message)
-    {
-        return  RET_NOT_ENOUGH_MEMORY;
-    }
-
-    message->cmd = RF_CMD_TEST_STOP;
-
-    if (xQueueSend( messageQueueHandle_, &message, ( TickType_t ) 10 ) == pdPASS)
-    {
-        return  RET_OK;
-    }
-
-    vPortFree(message);
-
-    return  RET_ERROR;
-}
-
-RET_VALUE   RF_internalTestSendStart(uint8_t* buffer, uint32_t size, uint32_t interval, uint32_t count)
-{
-    if ( status_ != RF_STATUS_READY)
-    {
-        return  RET_ERROR;
-    }
-
-    memcpy(testSendParams_.payload, buffer, size);
-    testSendParams_.size = size;
-    testSendParams_.interval = interval;
-    testSendParams_.count = 0;
-    testSendParams_.countMax = count;
-
-    osTimerStart(testSendHandle, interval);
-
-    status_ = RF_STATUS_TEST_SEND;
-
-    return  RET_OK;
-}
-
-
-RET_VALUE   RF_internalTestRecvStart(uint32_t interval, uint32_t timeout)
-{
-    if ( status_ != RF_STATUS_READY)
-    {
-        return  RET_ERROR;
-    }
-
-    testRecvParams_.interval = interval;
-    testRecvParams_.timeout = timeout;
-
-//    osTimerStart(testRecvHandle, interval);
-
-    uint8_t buffer[64];
-    uint32_t receivedLength;
-
-    while(1)
-    {
-        RF_recv(buffer, sizeof(buffer), &receivedLength, timeout);
-    }
-
-    status_ = RF_STATUS_TEST_RECV;
-
-    return  RET_OK;
-}
-
-void RF_internalTestSendCallback(void const * argument)
-{
-//    RF_MESSAGE_TEST_SEND_PARAMS* params =(RF_MESSAGE_TEST_SEND_PARAMS*)argument;
-
-    ++testSendParams_.count;
-
-    if (testSendParams_.countMax != 0)
-    {
-        TRACE("Test Send : %d / %d\n", testSendParams_.count, testSendParams_.countMax);
+        tickTimeout = 1;
     }
     else
     {
-        TRACE("Test Send : %d\n", testSendParams_.count);
+        tickTimeout = tickTimeout - (TICK_get() - tickStart);
     }
 
-    RF_send(testSendParams_.payload, testSendParams_.size, 10);
+    upCount_++;
 
-    if ((testSendParams_.countMax != 0) && (testSendParams_.count == testSendParams_.countMax))
+    frameBuffer[frameLength++] = (_destAddress >> 8) & 0xFF;
+    frameBuffer[frameLength++] = (_destAddress     ) & 0xFF;
+    frameBuffer[frameLength++] = (config_.shortAddress >> 8) & 0xFF;
+    frameBuffer[frameLength++] = (config_.shortAddress     ) & 0xFF;
+    frameBuffer[frameLength++] = _port;
+    frameBuffer[frameLength++] = _options;
+    frameBuffer[frameLength++] = (upCount_ >> 8) & 0xFF;
+    frameBuffer[frameLength++] = (upCount_     ) & 0xFF;
+    frameBuffer[frameLength++] = _dataSize;
+    if (_dataSize != 0)
     {
-        osTimerStop(testSendHandle);
-        status_ = RF_STATUS_READY;
+        memcpy(&frameBuffer[frameLength], _data, _dataSize);
     }
-}
+    frameLength += _dataSize;
 
+    uint16_t    crc = CRC16_calc(frameBuffer, frameLength);
+    frameBuffer[frameLength++] = (crc >> 8) & 0xFF;
+    frameBuffer[frameLength++] = (crc     ) & 0xFF;
 
-void RF_internalTestRecvCallback(void const * argument)
-{
-    RF_recv(testRecvParams_.payload, sizeof(testRecvParams_.payload), &testRecvParams_.receivedLength, testRecvParams_.timeout);
-}
-
-RET_VALUE   RF_internalTestStop(void)
-{
-    switch(status_)
+    ret = SX1231_sendFrame(frameBuffer, frameLength, tickTimeout);
+    xSemaphoreGive( semaphore_ );
+    if (ret == RET_OK)
     {
-    case    RF_STATUS_TEST_SEND:
-        {
-            osTimerStop(testSendHandle);
-            status_ = RF_STATUS_READY;
-            TRACE("Send test stopped!\n");
-        }
-        break;
+        statistics_.Tx.count++;
 
-    case    RF_STATUS_TEST_RECV:
+        if (frameLength != 0)
         {
-            osTimerStop(testRecvHandle);
-            status_ = RF_STATUS_READY;
-            TRACE("Recv test stopped!\n");
+            //DEBUG_DUMP("SEND", frameBuffer, frameLength, 0);
         }
-        break;
+        else
+        {
+            statistics_.Tx.ack++;
+            DEBUG("ACK");
+        }
+    }
+    else
+    {
+        DEBUG("send failed!\n");
     }
 
-    return  RET_OK;
+    return  ret;
 }
 
-
-void  RF_DIO0Callback()
+RET_VALUE   RF_recv(uint8_t* buffer, uint32_t bufferSize, uint32_t* receivedLength,  uint16_t* _srcAddress, uint8_t* _port, uint8_t* _options, uint32_t timeout)
 {
+    uint8_t ret = ERROR;
+    TickType_t  tickStart  = TICK_get();
+    TickType_t  tickTimeout = timeout / portTICK_PERIOD_MS;
+    uint8_t     frame[RF_BUFFER_SIZE_MAX];
+    uint32_t    frameLength;
 
+
+    if( xSemaphoreTake( semaphore_, tickTimeout) != pdTRUE )
+    {
+        DEBUG("RF recv failed!\n");
+        return  RET_ERROR;
+    }
+
+    if (tickTimeout <= (TICK_get() - tickStart))
+    {
+        tickTimeout = 1;
+    }
+    else
+    {
+        tickTimeout = tickTimeout - (TICK_get() - tickStart);
+    }
+
+    ret  = SX1231_receiveFrame(frame, RF_BUFFER_SIZE_MAX, &frameLength, tickTimeout * portTICK_PERIOD_MS);
+    xSemaphoreGive( semaphore_ );
+    if (ret == RET_OK)
+    {
+        if (frameLength < RF_FRAME_OVERHEAD_SIZE)
+        {
+            DEBUG("Too short frame received[frameLength = %d].\n", frameLength);
+            ret = RET_FRAME_TOO_SHORT;
+        }
+        else
+        {
+            if (config_.shortAddress != (((uint16_t)frame[RF_FRAME_OFFSET_DEST_ADDRESS] << 8) | frame[RF_FRAME_OFFSET_DEST_ADDRESS + 1]))
+            {
+                ret = RET_IGNORE_FARME;
+            }
+            else
+                {
+                uint16_t    crc = CRC16_calc(frame, frameLength - 2);
+                uint16_t    inFrameCrc = (((uint16_t)frame[frameLength - 2] << 8) + frame[frameLength - 1]);
+                if (crc != inFrameCrc)
+                {
+                    DEBUG("CRC does not match.[ Calc : %04x, Pkt : %04x].\n", crc, inFrameCrc);
+                    ret = RET_FRAME_INVALID;
+                }
+                else
+                {
+
+                    if (frame[RF_FRAME_OFFSET_PAYLOAD_LENGTH] != (frameLength - RF_FRAME_OVERHEAD_SIZE))
+                    {
+                        DEBUG("Invalid frame length.[ Received : %d, In Frame : %d].\n", frameLength - RF_FRAME_OVERHEAD_SIZE, (uint32_t)frame[3]);
+                        ret = RET_FRAME_INVALID;
+                    }
+                    else
+                    {
+
+                        *receivedLength = frameLength - RF_FRAME_OVERHEAD_SIZE;
+                        memcpy(buffer, &frame[RF_FRAME_OFFSET_PAYLOAD_BEGIN], frameLength - RF_FRAME_OVERHEAD_SIZE);
+
+                        if (_srcAddress)
+                        {
+                            *_srcAddress = ((uint16_t)frame[RF_FRAME_OFFSET_SRC_ADDRESS] << 8) | frame[RF_FRAME_OFFSET_SRC_ADDRESS + 1];
+                        }
+
+                        if (_port)
+                        {
+                            *_port = frame[RF_FRAME_OFFSET_PORT];
+                        }
+
+                        if (_options)
+                        {
+                            *_options = frame[RF_FRAME_OFFSET_OPTIONS];
+                        }
+
+                        statistics_.Rx.count++;
+                        ret = RET_OK;
+                    }
+                }
+            }
+        }
+    }
+
+    return  ret;
 }
 
-void    SX1231_timeout(void);
-
-void    RF_receiveTimeoutCallback(void const* params)
-{
-    SX1231_timeout();
-}
 /////////////////////////////////////////////////////////////////////////////
 // SX1231 Control Functions
 /////////////////////////////////////////////////////////////////////////////
@@ -638,16 +559,35 @@ bool    SX1231_SPI_receive(uint8_t* buffer, uint32_t size, uint32_t timeout)
 
     return  false;
 }
-
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-    if (SX1231_getPreviousMode() == SX1231_RF_TRANSMITTER)
+    switch(SX1231_getPreviousMode())
     {
-        txCount++;
+    case    SX1231_RF_TRANSMITTER:
+        {
+        }
+        break;
+
+    case    SX1231_RF_RECEIVER:
+        {
+            SX1231_receiveCallback();
+        }
+        break;
     }
-    else if (SX1231_getPreviousMode() == SX1231_RF_RECEIVER)
-    {
-        SX1231_receivePacket();
-        rxCount++;
-    }
+}
+
+RET_VALUE   RF_getStatistics(RF_STATISTICS* _statistics)
+{
+    ASSERT(_statistics);
+
+    memcpy(_statistics, &statistics_, sizeof(RF_STATISTICS));
+
+    return  RET_OK;
+}
+
+RET_VALUE   RF_clearStatistics(void)
+{
+    memset(&statistics_, 0, sizeof(RF_STATISTICS));
+
+    return  RET_OK;
 }

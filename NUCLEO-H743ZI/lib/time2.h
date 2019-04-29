@@ -29,10 +29,7 @@ RET_VALUE   TIME2_setAlarm(FI_CLOCK time);
 
 uint32_t    TIME2_getTimeZone(void);
 
-RET_VALUE   FI_CLOCK_toRTCTime(FI_CLOCK value, RTC_TimeTypeDef *rtcTime);
-RET_VALUE   FI_CLOCK_fromRTCTime(RTC_TimeTypeDef *rtcTime, FI_CLOCK *value);
-
-uint32_t    FI_TICK_get(void);
+uint32_t    TICK_get(void);
 
 
 #endif

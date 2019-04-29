@@ -1198,6 +1198,18 @@
             <group>
                 <name>App</name>
                 <group>
+                    <name>comport</name>
+                    <file>
+                        <name>$PROJ_DIR$\..\App\com\com_rf.c</name>
+                    </file>
+                    <file>
+                        <name>$PROJ_DIR$\..\App\com\com_scan.c</name>
+                    </file>
+                    <file>
+                        <name>$PROJ_DIR$\..\App\comport.c</name>
+                    </file>
+                </group>
+                <group>
                     <name>shell</name>
                     <file>
                         <name>$PROJ_DIR$\..\App\shell\shell.c</name>

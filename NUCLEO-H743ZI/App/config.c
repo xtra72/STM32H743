@@ -87,6 +87,18 @@ const CONFIG  defaultConfig =
             .priority = 5
         }
     },
+    .comport =
+    {
+        .serial =
+        {
+            .port = SERIAL_PORT_6,
+            .baudrate = SERIAL_BAUDRATE_115200,
+            .parity = SERIAL_PARITY_NONE,
+            .dataBits = SERIAL_DATA_BITS_8,
+            .stopBits = SERIAL_STOP_BITS_1,
+            .priority = 5
+        }
+    },
     .trace =
     {
         .enable = true

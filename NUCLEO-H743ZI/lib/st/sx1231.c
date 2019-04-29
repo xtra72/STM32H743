@@ -3,27 +3,33 @@
 #include "target.h"
 #include "sx1231.h"
 
-#define RF_BUFFER_SIZE  255
+#define __MODULE_NAME__ "SX1231"
 
-#define RF_FRAME_TIMEOUT(BitRate) (uint32_t)(((((uint32_t)RF_BUFFER_SIZE *  8 * 5.0) / (4 * BitRate)) * 128) + 1)
+#include "trace.h"
 
-__weak  void    SX1231_SPI_select(bool select);
-__weak  bool    SX1231_SPI_transmit(uint8_t* buffer, uint32_t size, uint32_t timeout);
-__weak  bool    SX1231_SPI_receive(uint8_t* buffer, uint32_t size, uint32_t timeout);
-static  void    SX1231_receiveTimeoutCallback(void const* params);
-static  uint8_t SX1231_receiveStart(uint8_t* buffer, uint32_t bufferSize);
+#define RF_FRAME_TIMEOUT(BitRate) (uint32_t)(((((uint32_t)SX1231_RF_BUFFER_SIZE_MAX *  8 * 5.0) / (4 * BitRate)) * 128) + 1)
+
+__weak  void        SX1231_SPI_select(bool select);
+__weak  bool        SX1231_SPI_transmit(uint8_t* buffer, uint32_t size, uint32_t timeout);
+__weak  bool        SX1231_SPI_receive(uint8_t* buffer, uint32_t size, uint32_t timeout);
+
+static  void        SX1231_internalSetMode(uint8_t mode);
+static  void        SX1231_internalWriteRegister(uint8_t address, uint16_t value);
+static  uint16_t    SX1231_internalReadRegister(uint8_t address);
+static  RET_VALUE   SX1231_lockAPI(uint32_t timeout);
+static  RET_VALUE   SX1231_unlockAPI(void);
 
 /*******************************************************************
 ** Global variables                                               **
 *******************************************************************/
-static  uint8_t     state_ = SX1231_RF_STOP;            // RF state machine
-static  uint8_t     previousMode = SX1231_RF_STANDBY;   // Previous chip operating mode
-static  uint8_t*    receiveBuffer = NULL;               // Pointer to the RF frame
-static  uint32_t    receiveBufferSize =0;
+static  uint8_t     state_ = SX1231_RF_STOP;                // RF state machine
+static  uint8_t     previousMode = SX1231_RF_STANDBY;       // Previous chip operating mode
+static  uint8_t     receiveBuffer_[SX1231_RF_BUFFER_SIZE_MAX];      // Pointer to the RF frame
 static  uint32_t    receivedLength_ = 0;
 static  uint32_t    timeoutSPI_ = 10;
-static  osTimerId   receiveTimeoutHandle = NULL;
-static  uint32_t    receiveTimeout_ = 0;
+static  SemaphoreHandle_t   receiveSemaphore_ = NULL;
+static  SemaphoreHandle_t   apiSemaphore_ = NULL;
+//static  bool                apiLocked = false;
 
 static  uint16_t RegistersCfg[] =
 {   // SX1231 configuration registers values
@@ -120,6 +126,12 @@ static  uint16_t RegistersCfg[] =
 
 void    SX1231_init(void)
 {
+    receiveSemaphore_ = xSemaphoreCreateBinary();
+    xSemaphoreGive( receiveSemaphore_);
+
+    apiSemaphore_ = xSemaphoreCreateBinary();
+    xSemaphoreGive( apiSemaphore_ );
+
 }
 
 /*******************************************************************
@@ -134,23 +146,21 @@ void SX1231_initRFChip (void)
     uint16_t i;
 
     /////// RC CALIBRATION (Once at POR) ///////
-    SX1231_setRFMode(SX1231_RF_STANDBY);
-    SX1231_writeRegister(0x57, 0x80);
-    SX1231_writeRegister(SX1231_REG_OSC1, SX1231_readRegister(SX1231_REG_OSC1) | SX1231_RF_OSC1_RCCAL_START);
-    while ((SX1231_readRegister(SX1231_REG_OSC1) & SX1231_RF_OSC1_RCCAL_DONE) == 0x00);
-    SX1231_writeRegister(SX1231_REG_OSC1, SX1231_readRegister(SX1231_REG_OSC1) | SX1231_RF_OSC1_RCCAL_START);
-    while ((SX1231_readRegister(SX1231_REG_OSC1) & SX1231_RF_OSC1_RCCAL_DONE) == 0x00);
-    SX1231_writeRegister(0x57, 0x00);
+    SX1231_internalSetMode(SX1231_RF_STANDBY);
+    SX1231_internalWriteRegister(0x57, 0x80);
+    SX1231_internalWriteRegister(SX1231_REG_OSC1, SX1231_internalReadRegister(SX1231_REG_OSC1) | SX1231_RF_OSC1_RCCAL_START);
+    while ((SX1231_internalReadRegister(SX1231_REG_OSC1) & SX1231_RF_OSC1_RCCAL_DONE) == 0x00);
+    SX1231_internalWriteRegister(SX1231_REG_OSC1, SX1231_internalReadRegister(SX1231_REG_OSC1) | SX1231_RF_OSC1_RCCAL_START);
+    while ((SX1231_internalReadRegister(SX1231_REG_OSC1) & SX1231_RF_OSC1_RCCAL_DONE) == 0x00);
+    SX1231_internalWriteRegister(0x57, 0x00);
     ////////////////////////////////////////////
 
     for(i = 1; i <= SX1231_REG_TEMP2; i++)
     {
-        SX1231_writeRegister(i, RegistersCfg[i]);
+        SX1231_internalWriteRegister(i, RegistersCfg[i]);
     }
 
-    receiveTimeout_ = RF_FRAME_TIMEOUT(1200);
-
-    SX1231_setRFMode(SX1231_RF_SLEEP);
+    SX1231_internalSetMode(SX1231_RF_SLEEP);
 }
 
 /*******************************************************************
@@ -161,43 +171,7 @@ void SX1231_initRFChip (void)
 *******************************************************************/
 void SX1231_setRFMode(uint8_t mode)
 {
-    if(mode != previousMode)
-    {
-        if(mode == SX1231_RF_TRANSMITTER)
-        {
-            SX1231_writeRegister(SX1231_REG_OPMODE, (RegistersCfg[SX1231_REG_OPMODE] & 0xE3) | SX1231_RF_TRANSMITTER);
-            while ((SX1231_readRegister(SX1231_REG_IRQFLAGS1) & SX1231_RF_IRQFLAGS1_MODEREADY) == 0x00); // Wait for ModeReady
-            previousMode = SX1231_RF_TRANSMITTER;
-        }
-
-        else if(mode == SX1231_RF_RECEIVER)
-        {
-            SX1231_writeRegister(SX1231_REG_OPMODE, (RegistersCfg[SX1231_REG_OPMODE] & 0xE3) | SX1231_RF_RECEIVER);
-            while ((SX1231_readRegister(SX1231_REG_IRQFLAGS1) & SX1231_RF_IRQFLAGS1_MODEREADY) == 0x00); // Wait for ModeReady
-            previousMode = SX1231_RF_RECEIVER;
-        }
-
-        else if(mode == SX1231_RF_SYNTHESIZER)
-        {
-            SX1231_writeRegister(SX1231_REG_OPMODE, (RegistersCfg[SX1231_REG_OPMODE] & 0xE3) | SX1231_RF_SYNTHESIZER);
-            while ((SX1231_readRegister(SX1231_REG_IRQFLAGS1) & SX1231_RF_IRQFLAGS1_MODEREADY) == 0x00); // Wait for ModeReady
-            previousMode = SX1231_RF_SYNTHESIZER;
-        }
-
-        else if(mode == SX1231_RF_STANDBY)
-        {
-            SX1231_writeRegister(SX1231_REG_OPMODE, (RegistersCfg[SX1231_REG_OPMODE] & 0xE3) | SX1231_RF_STANDBY);
-            while ((SX1231_readRegister(SX1231_REG_IRQFLAGS1) & SX1231_RF_IRQFLAGS1_MODEREADY) == 0x00); // Wait for ModeReady
-            previousMode = SX1231_RF_STANDBY;
-        }
-
-        else
-        {// mode == SX1231_RF_SLEEP
-            SX1231_writeRegister(SX1231_REG_OPMODE, (RegistersCfg[SX1231_REG_OPMODE] & 0xE3) | SX1231_RF_SLEEP);
-            while ((SX1231_readRegister(SX1231_REG_IRQFLAGS1) & SX1231_RF_IRQFLAGS1_MODEREADY) == 0x00); // Wait for ModeReady
-            previousMode = SX1231_RF_SLEEP;
-        }
-    }
+    SX1231_internalSetMode(mode);
 }
 
 uint8_t SX1231_getPreviousMode(void)
@@ -214,15 +188,7 @@ uint8_t SX1231_getPreviousMode(void)
 *******************************************************************/
 void SX1231_writeRegister(uint8_t address, uint16_t value)
 {
-    uint8_t buffer[2];
-
-    buffer[0] = 0x80 | address;
-    buffer[1] = value;
-
-    SX1231_SPI_select(true);
-
-    SX1231_SPI_transmit(buffer, 2, timeoutSPI_);
-    SX1231_SPI_select(false);
+    SX1231_internalWriteRegister(address, value);
 }
 
 /*******************************************************************
@@ -234,18 +200,8 @@ void SX1231_writeRegister(uint8_t address, uint16_t value)
 *******************************************************************/
 uint16_t SX1231_readRegister(uint8_t address)
 {
-    uint8_t buffer;
-
-    SX1231_SPI_select(true);
-
-    SX1231_SPI_transmit(&address, 1, timeoutSPI_);
-    SX1231_SPI_receive(&buffer, 1, timeoutSPI_);
-
-    SX1231_SPI_select(false);
-
-    return buffer;
+    return  SX1231_internalReadRegister(address);
 }
-
 
 /*******************************************************************
 ** Communication functions                                        **
@@ -257,41 +213,57 @@ uint16_t SX1231_readRegister(uint8_t address)
 ** In  : *buffer, size                                            **
 ** Out : *pReturnCode                                             **
 *******************************************************************/
-uint8_t SX1231_sendRfFrame(uint8_t *buffer, uint8_t size, uint32_t timeout)
+RET_VALUE   SX1231_sendFrame(uint8_t *buffer, uint8_t size, uint32_t timeout)
 {
+    RET_VALUE   ret;
+
     if((size+1) > SX1231_RF_BUFFER_SIZE_MAX)
     {
         state_ |= SX1231_RF_STOP;
-        return  ERROR;
+        return  RET_ERROR;
+    }
+
+    ret = SX1231_lockAPI(timeout);
+    if (ret != RET_OK)
+    {
+        DEBUG("API is locked\n");
+        return  ret;
     }
 
     state_ |= SX1231_RF_BUSY;
     state_ &= ~SX1231_RF_STOP;
 
-    SX1231_writeRegister(SX1231_REG_DIOMAPPING1, (RegistersCfg[SX1231_REG_DIOMAPPING1] & 0x3F) | SX1231_RF_DIOMAPPING1_DIO0_00); // DIO0 is "Packet Sent"
-    SX1231_writeRegister(SX1231_REG_FIFOTHRESH, (RegistersCfg[SX1231_REG_FIFOTHRESH] & 0x7F) | SX1231_RF_FIFOTHRESH_TXSTART_FIFONOTEMPTY);
+    SX1231_internalWriteRegister(SX1231_REG_DIOMAPPING1, (RegistersCfg[SX1231_REG_DIOMAPPING1] & 0x3F) | SX1231_RF_DIOMAPPING1_DIO0_00); // DIO0 is "Packet Sent"
+    SX1231_internalWriteRegister(SX1231_REG_FIFOTHRESH, (RegistersCfg[SX1231_REG_FIFOTHRESH] & 0x7F) | SX1231_RF_FIFOTHRESH_TXSTART_FIFONOTEMPTY);
 
-    SX1231_setRFMode(SX1231_RF_SLEEP);
+    SX1231_internalSetMode(SX1231_RF_SLEEP);
 
-    SX1231_sendByte(size);
+    SX1231_internalWriteRegister(SX1231_REG_FIFO, size);
     for(int i = 0; i < size; )
     {
-        SX1231_sendByte(buffer[i++]);
+        SX1231_internalWriteRegister(SX1231_REG_FIFO, buffer[i++]);
     }
 
-    SX1231_setRFMode(SX1231_RF_TRANSMITTER); //   => Tx starts since FIFO is not empty
+    DEBUG("Transmit Start\n");
+
+    SX1231_internalSetMode(SX1231_RF_TRANSMITTER); //   => Tx starts since FIFO is not empty
+    DEBUG("Transmit Start\n");
 
     do{
 
     }while(!SX1231_getDIO0()); // Wait for Packet sent
 
-    SX1231_setRFMode(SX1231_RF_SLEEP);
+        DEBUG("Transmit Finished\n");
+    SX1231_internalSetMode(SX1231_RF_SLEEP);
+        DEBUG("Transmit Finished\n");
 
 
     state_ |= SX1231_RF_STOP;
     state_ &= ~SX1231_RF_TX_DONE;
 
-    return  OK;
+    SX1231_unlockAPI();
+
+    return  RET_OK;
 }
 
 /*******************************************************************
@@ -300,123 +272,129 @@ uint8_t SX1231_sendRfFrame(uint8_t *buffer, uint8_t size, uint32_t timeout)
 ** In  : -                                                        **
 ** Out : *buffer, size, *pReturnCode                              **
 *******************************************************************/
-uint8_t SX1231_receiveRfFrame(uint8_t *buffer, uint32_t bufferSize, uint32_t *_receivedLength)
+RET_VALUE SX1231_receiveFrame(uint8_t *_buffer, uint32_t _bufferSize, uint32_t *_receivedLength, uint32_t _timeout)
 {
-    SX1231_receiveStart(buffer, bufferSize);
+    RET_VALUE   ret;
 
-    while(!(state_ & SX1231_RF_STOP))
-    {
-        osDelay();
-    }
-
-    if (state_ & (SX1231_RF_TIMEOUT | SX1231_RF_ERROR))
-    {
-        return  ERROR;
-    }
-
-
-//    receivedLength_ = SX1231_receivePacket();
-
-//    *_receivedLength = receivedLength_;
-
-    return  OK;
-} // void ReceiveRfFrame(uint8_t *buffer, uint8_t size, uint8_t *pReturnCode)
-
-
-uint8_t SX1231_receiveStart(uint8_t* buffer, uint32_t bufferSize)
-{
     if((state_ & SX1231_RF_STOP) != SX1231_RF_STOP)
     {
-        return  ERROR;
+        return  RET_ERROR;
     }
 
-    receiveBuffer = buffer;
-    receiveBufferSize = bufferSize;
-    receivedLength_ = 0;
-
-    SX1231_writeRegister(SX1231_REG_DIOMAPPING1, (RegistersCfg[SX1231_REG_DIOMAPPING1] & 0x3F) | SX1231_RF_DIOMAPPING1_DIO0_01); // DIO0 is "PAYLOADREADY"
-    SX1231_writeRegister(SX1231_REG_SYNCCONFIG, (RegistersCfg[SX1231_REG_SYNCCONFIG] & 0xBF) | SX1231_RF_SYNC_FIFOFILL_AUTO);
-
-    SX1231_setRFMode(SX1231_RF_RECEIVER);
- //   SX1231_enableTimeOut(true);
-    state_ |= SX1231_RF_BUSY;
-    state_ &= ~SX1231_RF_STOP;
-    state_ &= ~SX1231_RF_TIMEOUT;
-
-    return  OK;
-}
-
-void    SX1231_receiveDoneCallback(void)
-{
-
-    state_ |= SX1231_RF_STOP;
-}
-
-uint8_t SX1231_receivePacket(void)
-{
-    uint8_t    receiveByte;
-
-    SX1231_setRFMode(SX1231_RF_SLEEP);
-
-    receiveByte = SX1231_receiveByte();
-
-    for(receivedLength_ = 0 ; receivedLength_ < receiveBufferSize && receivedLength_ < receiveByte ; receivedLength_ ++)
+    ret = SX1231_lockAPI(_timeout);
+    if (ret != RET_OK)
     {
-        receiveBuffer[receivedLength_] = SX1231_receiveByte();
+        DEBUG("API is locked\n");
+        return  ret;
     }
 
-    state_ |= SX1231_RF_STOP;
+    if (xSemaphoreTake( receiveSemaphore_, ( TickType_t ) 0 )  != pdTRUE)
+    {
+        DEBUG("Take failed\n");
+        ret = RET_ERROR;
+    }
+    else
+    {
+        TickType_t  tickStart  = xTaskGetTickCount();
+        TickType_t  tickTimeout = _timeout / portTICK_PERIOD_MS;
 
-//    SX1231_enableTimeOut(false);
+        receivedLength_ = 0;
+
+        SX1231_internalWriteRegister(SX1231_REG_DIOMAPPING1, (RegistersCfg[SX1231_REG_DIOMAPPING1] & 0x3F) | SX1231_RF_DIOMAPPING1_DIO0_01); // DIO0 is "PAYLOADREADY"
+        SX1231_internalWriteRegister(SX1231_REG_SYNCCONFIG, (RegistersCfg[SX1231_REG_SYNCCONFIG] & 0xBF) | SX1231_RF_SYNC_FIFOFILL_AUTO);
+
+        SX1231_internalSetMode(SX1231_RF_RECEIVER);
+
+        state_ |= SX1231_RF_BUSY;
+        state_ &= ~(SX1231_RF_STOP | SX1231_RF_TIMEOUT);
+
+        if (xSemaphoreTake( receiveSemaphore_, tickTimeout)  != pdTRUE)
+        {
+            //DEBUG("Receive timeout\n");
+            ret = RET_TIMEOUT;
+        }
+        else
+        {
+            DEBUG("Received\n");
+            if (receivedLength_ == 0)
+            {
+                DEBUG("Received length is 0\n");
+                ret = RET_ERROR;
+            }
+            else if (_bufferSize < receivedLength_)
+            {
+                DEBUG("Received length too long\n");
+                ret = RET_BUFFER_TOO_SMALL;
+            }
+            else
+            {
+                memcpy(_buffer, receiveBuffer_, receivedLength_);
+                *_receivedLength = receivedLength_;
+                ret = RET_OK;
+            }
+        }
+    }
+
+    SX1231_receiveCancel();
+
+    SX1231_unlockAPI();
+
+    return  ret;
+}
+
+RET_VALUE   SX1231_receiveCallback(void)
+{
+    static BaseType_t higherPriorityTaskWoken;
+
+	higherPriorityTaskWoken = pdFALSE;
+
+    SX1231_internalSetMode(SX1231_RF_SLEEP);
+
+    receivedLength_ = SX1231_internalReadRegister(SX1231_REG_FIFO);
+    for(uint32_t i = 0 ; i < sizeof(receiveBuffer_) ; i++)
+    {
+        receiveBuffer_[i] = SX1231_internalReadRegister(SX1231_REG_FIFO);
+    }
+
     state_ |= SX1231_RF_STOP;
     state_ &= ~SX1231_RF_RX_DONE;
 
-    return OK;
+    xSemaphoreGiveFromISR( receiveSemaphore_, &higherPriorityTaskWoken );
+
+    return RET_OK;
 }
 
-void    SX1231_receiveTimeoutCallback(void const * params)
+RET_VALUE   SX1231_getReceivedFrame(uint8_t* _buffer, uint32_t _bufferSize, uint32_t* _frameLength)
 {
-    SX1231_setRFMode(SX1231_RF_SLEEP);
+    if (receivedLength_ == 0)
+    {
+        return  RET_EMPTY;
+    }
 
-    state_ |= SX1231_RF_STOP;
-    state_ |= SX1231_RF_TIMEOUT;
+    if (_bufferSize < receivedLength_)
+    {
+        return  RET_BUFFER_TOO_SMALL;
+    }
 
+    memcpy(_buffer, receiveBuffer_, receivedLength_);
+    *_frameLength = receivedLength_;
+
+    return  RET_OK;
 }
 
-void    SX1231_timeout(void)
+RET_VALUE   SX1231_receiveCancel(void)
 {
-    SX1231_setRFMode(SX1231_RF_SLEEP);
+ //   if (SX1231_getPreviousMode() == SX1231_RF_RECEIVER)
+    {
+        SX1231_internalSetMode(SX1231_RF_SLEEP);
 
-    state_ |= SX1231_RF_STOP;
-    state_ |= SX1231_RF_TIMEOUT;
+        state_ |= SX1231_RF_STOP;
+
+        xSemaphoreGive( receiveSemaphore_);
+    }
+
+    return RET_OK;
 }
-
-/*******************************************************************
-** SX1231_sendByte : Sends a data to the transceiver through the SPI     **
-**            interface                                           **
-********************************************************************
-** In  : b                                                        **
-** Out : -                                                        **
-*******************************************************************/
-void SX1231_sendByte(uint8_t b)
-{
-	SX1231_writeRegister(SX1231_REG_FIFO, b); // SPI burst mode not used in this implementation
-} // void SX1231_sendByte(uint8_t b)
-
-/*******************************************************************
-** SX1231_receiveByte : Receives a data from the transceiver through the **
-**               SPI interface                                    **
-********************************************************************
-** In  : -                                                        **
-** Out : b                                                        **
-*******************************************************************/
-uint8_t SX1231_receiveByte(void)
-{
-	return SX1231_readRegister(SX1231_REG_FIFO); //SPI burst mode not used in this implementation
-}
-/*******************************************************************
-** Transceiver specific functions                                 **
-*******************************************************************/
 
 /*******************************************************************
 ** ReadRssi : Reads the Rssi value from the SX1231                **
@@ -427,9 +405,9 @@ uint8_t SX1231_receiveByte(void)
 uint16_t SX1231_ReadRssi(void)
 { // Must be called while in RX
 	uint16_t value;
-	SX1231_writeRegister(SX1231_REG_RSSICONFIG, RegistersCfg[SX1231_REG_RSSICONFIG] | SX1231_RF_RSSI_START); // Triggers RSSI measurement
-	while ((SX1231_readRegister(SX1231_REG_RSSICONFIG) & SX1231_RF_RSSI_DONE) == 0x00);               // Waits for RSSI measurement to be completed
-	value = SX1231_readRegister(SX1231_REG_RSSIVALUE);                                         // Reads the RSSI result
+	SX1231_internalWriteRegister(SX1231_REG_RSSICONFIG, RegistersCfg[SX1231_REG_RSSICONFIG] | SX1231_RF_RSSI_START); // Triggers RSSI measurement
+	while ((SX1231_internalReadRegister(SX1231_REG_RSSICONFIG) & SX1231_RF_RSSI_DONE) == 0x00);               // Waits for RSSI measurement to be completed
+	value = SX1231_internalReadRegister(SX1231_REG_RSSIVALUE);                                         // Reads the RSSI result
 	return value;
 }
 
@@ -442,9 +420,9 @@ uint16_t SX1231_ReadRssi(void)
 int16_t SX1231_ReadFei(void)
 { // Must be called while in RX
 	int16_t value;
-	SX1231_writeRegister(SX1231_REG_AFCFEI, RegistersCfg[SX1231_REG_AFCFEI] | SX1231_RF_AFCFEI_FEI_START);   // Triggers FEI measurement
-	while ((SX1231_readRegister(SX1231_REG_AFCFEI) & SX1231_RF_AFCFEI_FEI_DONE) == 0x00);             // Waits for FEI measurement to be completed
-	value = ((SX1231_readRegister(SX1231_REG_FEIMSB) << 8) | SX1231_readRegister(SX1231_REG_FEILSB));        // Reads the FEI result
+	SX1231_internalWriteRegister(SX1231_REG_AFCFEI, RegistersCfg[SX1231_REG_AFCFEI] | SX1231_RF_AFCFEI_FEI_START);   // Triggers FEI measurement
+	while ((SX1231_internalReadRegister(SX1231_REG_AFCFEI) & SX1231_RF_AFCFEI_FEI_DONE) == 0x00);             // Waits for FEI measurement to be completed
+	value = ((SX1231_internalReadRegister(SX1231_REG_FEIMSB) << 8) | SX1231_internalReadRegister(SX1231_REG_FEILSB));        // Reads the FEI result
 	return value;
 }
 
@@ -455,48 +433,13 @@ int16_t SX1231_ReadFei(void)
 ** In  : -                                                        **
 ** Out : *pReturnCode                                             **
 *******************************************************************/
-void SX1231_AutoFreqControl(uint8_t *pReturnCode)
+RET_VALUE   SX1231_AutoFreqControl(void)
 { // Must be called while in RX
-	SX1231_writeRegister(SX1231_REG_AFCFEI, RegistersCfg[SX1231_REG_AFCFEI] | SX1231_RF_AFCFEI_AFC_START);   // Triggers AFC measurement
-	while ((SX1231_readRegister(SX1231_REG_AFCFEI) & SX1231_RF_AFCFEI_AFC_DONE) == 0x00);             // Waits for AFC measurement to be completed
-    *pReturnCode = OK;
+	SX1231_internalWriteRegister(SX1231_REG_AFCFEI, RegistersCfg[SX1231_REG_AFCFEI] | SX1231_RF_AFCFEI_AFC_START);   // Triggers AFC measurement
+	while ((SX1231_internalReadRegister(SX1231_REG_AFCFEI) & SX1231_RF_AFCFEI_AFC_DONE) == 0x00);             // Waits for AFC measurement to be completed
+
+    return  RET_OK;
 }
-
-/*******************************************************************
-** Utility functions                                              **
-*******************************************************************/
-
-/*******************************************************************
-** Wait : This routine uses the counter A&B to create a delay     **
-**        using the RC ck source                                  **
-********************************************************************
-** In   : cntVal                                                  **
-** Out  : -                                                       **
-*******************************************************************/
-__weak void SX1231_wait(uint32_t usecs)
-{
-    for(int i = 0 ; i < usecs; i++)
-    {
-    }
-}
-
-/*******************************************************************
-** SX1231_enableTimeOut : Enables/Disables the software RF frame timeout **
-********************************************************************
-** In  : enable                                                   **
-** Out : -                                                        **
-*******************************************************************/
-void SX1231_enableTimeOut(uint8_t enable)
-{
-    if (enable)
-    {
-//        osTimerStart(receiveTimeoutHandle, receiveTimeout_);
-    }
-    else
-    {
-        osTimerStop(receiveTimeoutHandle);
-    }
-} // void SX1231_enableTimeOut(uint8_t enable)
 
 /*******************************************************************
 **                                                                **
@@ -508,34 +451,6 @@ __weak bool SX1231_getDIO0(void)
 {
     return  0;
 }
-
-/*******************************************************************
-** Handle_Irq_Pa2 : Handles the interruption from the Pin 2 of    **
-**                  Port A                                        **
-********************************************************************
-** In  : -                                                        **
-** Out : -                                                        **
-*******************************************************************/
-void SX1231_Handle_Irq_Pa2 (void)
-{ // DIO0 = PAYLOADREADY in RX
-
-    state_ |= SX1231_RF_RX_DONE;
-    state_ &= ~SX1231_RF_BUSY;
-
-} //End Handle_Irq_Pa2
-
-/*******************************************************************
-** Handle_Irq_CntA : Handles the interruption from the Counter A  **
-********************************************************************
-** In              : -                                            **
-** Out             : -                                            **
-*******************************************************************/
-void SX1231_Handle_Irq_CntA (void)
-{
-    state_ |= SX1231_RF_TIMEOUT;
-    state_ &= ~SX1231_RF_BUSY;
-} //End Handle_Irq_CntA
-
 
 /*******************************************************************
 ** SX1231_SPI_transmit :                                                 **
@@ -567,5 +482,112 @@ __weak  bool    SX1231_SPI_receive(uint8_t* buffer, uint32_t size, uint32_t time
 *******************************************************************/
 __weak  void SX1231_SPI_select(bool select)
 {
+}
+
+
+/*******************************************************************
+** SX1231_writeRegister : Writes the register value at the given address **
+**                  on the SX1231                                 **
+********************************************************************
+** In  : address, value                                           **
+** Out : -                                                        **
+*******************************************************************/
+void SX1231_internalWriteRegister(uint8_t address, uint16_t value)
+{
+    uint8_t buffer[2];
+
+    buffer[0] = 0x80 | address;
+    buffer[1] = value;
+
+    SX1231_SPI_select(true);
+
+    SX1231_SPI_transmit(buffer, 2, timeoutSPI_);
+    SX1231_SPI_select(false);
+}
+
+/*******************************************************************
+** SX1231_internalReadRegister : Reads the register value at the given address on**
+**                the SX1231                                      **
+********************************************************************
+** In  : address                                                  **
+** Out : value                                                    **
+*******************************************************************/
+uint16_t SX1231_internalReadRegister(uint8_t address)
+{
+    uint8_t buffer;
+
+    SX1231_SPI_select(true);
+
+    SX1231_SPI_transmit(&address, 1, timeoutSPI_);
+    SX1231_SPI_receive(&buffer, 1, timeoutSPI_);
+
+    SX1231_SPI_select(false);
+
+    return buffer;
+}
+
+void SX1231_internalSetMode(uint8_t mode)
+{
+    if(mode != previousMode)
+    {
+        if(mode == SX1231_RF_TRANSMITTER)
+        {
+            SX1231_internalWriteRegister(SX1231_REG_OPMODE, (RegistersCfg[SX1231_REG_OPMODE] & 0xE3) | SX1231_RF_TRANSMITTER);
+            while ((SX1231_internalReadRegister(SX1231_REG_IRQFLAGS1) & SX1231_RF_IRQFLAGS1_MODEREADY) == 0x00); // Wait for ModeReady
+            previousMode = SX1231_RF_TRANSMITTER;
+        }
+
+        else if(mode == SX1231_RF_RECEIVER)
+        {
+            SX1231_internalWriteRegister(SX1231_REG_OPMODE, (RegistersCfg[SX1231_REG_OPMODE] & 0xE3) | SX1231_RF_RECEIVER);
+            while ((SX1231_internalReadRegister(SX1231_REG_IRQFLAGS1) & SX1231_RF_IRQFLAGS1_MODEREADY) == 0x00); // Wait for ModeReady
+            previousMode = SX1231_RF_RECEIVER;
+        }
+
+        else if(mode == SX1231_RF_SYNTHESIZER)
+        {
+            SX1231_internalWriteRegister(SX1231_REG_OPMODE, (RegistersCfg[SX1231_REG_OPMODE] & 0xE3) | SX1231_RF_SYNTHESIZER);
+            while ((SX1231_internalReadRegister(SX1231_REG_IRQFLAGS1) & SX1231_RF_IRQFLAGS1_MODEREADY) == 0x00); // Wait for ModeReady
+            previousMode = SX1231_RF_SYNTHESIZER;
+        }
+
+        else if(mode == SX1231_RF_STANDBY)
+        {
+            SX1231_internalWriteRegister(SX1231_REG_OPMODE, (RegistersCfg[SX1231_REG_OPMODE] & 0xE3) | SX1231_RF_STANDBY);
+            while ((SX1231_internalReadRegister(SX1231_REG_IRQFLAGS1) & SX1231_RF_IRQFLAGS1_MODEREADY) == 0x00); // Wait for ModeReady
+            previousMode = SX1231_RF_STANDBY;
+        }
+
+        else
+        {// mode == SX1231_RF_SLEEP
+            SX1231_internalWriteRegister(SX1231_REG_OPMODE, (RegistersCfg[SX1231_REG_OPMODE] & 0xE3) | SX1231_RF_SLEEP);
+            while ((SX1231_internalReadRegister(SX1231_REG_IRQFLAGS1) & SX1231_RF_IRQFLAGS1_MODEREADY) == 0x00); // Wait for ModeReady
+            previousMode = SX1231_RF_SLEEP;
+        }
+    }
+}
+
+RET_VALUE   SX1231_lockAPI(uint32_t _timeout)
+{
+    TickType_t  tickTimeout = _timeout / portTICK_PERIOD_MS;
+
+    if (xSemaphoreTake( apiSemaphore_, tickTimeout )  != pdTRUE)
+    {
+        DEBUG("Take failed\n");
+        return  RET_TIMEOUT;
+    }
+
+//    apiLocked = true;
+
+
+    return  RET_OK;
+}
+
+RET_VALUE   SX1231_unlockAPI(void)
+{
+    xSemaphoreGive( apiSemaphore_ );
+//    apiLocked = false;
+
+    return  RET_OK;
 }
 

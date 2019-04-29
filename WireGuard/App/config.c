@@ -58,6 +58,7 @@ const CONFIG  defaultConfig =
         },
         .dataCount = 1000
     },
+#if SUPPORT_SDRAM
     .sdram =
     {
         .startAddress = 0xD0000000,
@@ -65,6 +66,7 @@ const CONFIG  defaultConfig =
         .startHeapAddress = 0xD0000000,
         .heapSize         = 16 * 1024*1024
     },
+#endif
     .scan =
     {
         .interval = 1,

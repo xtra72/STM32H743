@@ -32,9 +32,9 @@ static  SERIAL  serials_[SERIAL_PORT_MAX];
 RET_VALUE       SERIAL_open(SERIAL_CONFIG* config, uint32_t bufferLength, SERIAL_HANDLE *serialHandle)
 {
     ASSERT((config != NULL) && (serialHandle != NULL));
-    
+
     RET_VALUE   ret = RET_OK;
-    
+
     switch(config->port)
     {
 #ifdef  USART1
@@ -53,10 +53,14 @@ RET_VALUE       SERIAL_open(SERIAL_CONFIG* config, uint32_t bufferLength, SERIAL
 #ifdef  UART5
     case    SERIAL_PORT_5:    serials_[config->port].uart.Instance = UART5; break;
 #endif
+
+#ifdef  USART6
+    case    SERIAL_PORT_6:    serials_[config->port].uart.Instance = USART6; break;
+#endif
     default:
         return  RET_ERROR;
     }
-    
+
     switch(config->baudrate)
     {
     case    SERIAL_BAUDRATE_50:		serials_[config->port].uart.Init.BaudRate = 50;   break;
@@ -116,9 +120,9 @@ RET_VALUE       SERIAL_open(SERIAL_CONFIG* config, uint32_t bufferLength, SERIAL
     {
         bufferLength = SERIAL_RX_BUFFER_SIZE;
     }
-    
+
     serials_[config->port].rxQueue = xQueueCreate( bufferLength, ( unsigned portBASE_TYPE ) sizeof( signed char ) );
-    
+
     if (HAL_UART_Init(&serials_[config->port].uart) != HAL_OK)
     {
         ret = RET_ERROR;
@@ -126,8 +130,8 @@ RET_VALUE       SERIAL_open(SERIAL_CONFIG* config, uint32_t bufferLength, SERIAL
     }
 
     //serials_[config->port].rxBuffer = pvPortMalloc(bufferLength);
-    HAL_UART_Receive_IT(&serials_[config->port].uart, serials_[config->port].buffer, sizeof(serials_[config->port].buffer));    
-    
+    HAL_UART_Receive_IT(&serials_[config->port].uart, serials_[config->port].buffer, sizeof(serials_[config->port].buffer));
+
     switch(config->port)
     {
 #ifdef  USART1
@@ -145,25 +149,28 @@ RET_VALUE       SERIAL_open(SERIAL_CONFIG* config, uint32_t bufferLength, SERIAL
 #ifdef  UART5
     case    SERIAL_PORT_5:    serials_[config->port].irq = UART5_IRQn; break;
 #endif
+#ifdef  USART6
+    case    SERIAL_PORT_6:    serials_[config->port].irq = USART6_IRQn; break;
+#endif
     default:
         ret = RET_ERROR;
         goto finished;
     }
-    
+
     HAL_NVIC_SetPriority(serials_[config->port].irq, config->priority, 0);
     HAL_NVIC_EnableIRQ(serials_[config->port].irq );
-    
+
     *serialHandle = &serials_[config->port];
-    
+
 finished:
     if (ret != RET_OK)
     {
         if (serials_[config->port].semaphore != NULL)
         {
             vSemaphoreDelete(serials_[config->port].semaphore);
-            serials_[config->port].semaphore = NULL;            
+            serials_[config->port].semaphore = NULL;
         }
-        
+
         if (serials_[config->port].rxQueue != NULL)
         {
             vQueueDelete(serials_[config->port].rxQueue);
@@ -176,7 +183,7 @@ finished:
             serials_[config->port].rxBuffer= NULL;
         }
     }
-    
+
     return  ret;
 }
 
@@ -192,26 +199,26 @@ RET_VALUE       SERIAL_close(SERIAL_HANDLE serialHandle)
     {
         return  RET_ERROR;
     }
-    
+
 	if (serialHandle->semaphore != NULL)
     {
         vSemaphoreDelete(serialHandle->semaphore);
         serialHandle->semaphore = NULL;
     }
-    
+
     if (serialHandle->rxQueue != NULL)
     {
         vQueueDelete(serialHandle->rxQueue);
         serialHandle->rxQueue = NULL;
     }
-    
+
     if (serialHandle->rxBuffer != NULL)
     {
         vPortFree(serialHandle->rxBuffer);
         serialHandle->rxBuffer= NULL;
     }
 
-    return  RET_OK;        
+    return  RET_OK;
 }
 
 uint32_t SERIAL_gets(SERIAL_HANDLE serialHandle, uint8_t* buffer, uint32_t bufferSize, uint32_t timeout)
@@ -219,9 +226,9 @@ uint32_t SERIAL_gets(SERIAL_HANDLE serialHandle, uint8_t* buffer, uint32_t buffe
     ASSERT(serialHandle != NULL);
     uint32_t    length = 0;
     uint8_t     readByte;
-    
+
     TickType_t  xStartTick = xTaskGetTickCount();
-    
+
     while(length < bufferSize)
     {
         if (SERIAL_getc(serialHandle, &readByte, 1) == RET_OK)
@@ -238,7 +245,7 @@ uint32_t SERIAL_gets(SERIAL_HANDLE serialHandle, uint8_t* buffer, uint32_t buffe
             break;
         }
     }
-    
+
     /*if (serialHandle->outputEnable)
     {
             serialHandle->outputEnable(true);
@@ -254,18 +261,18 @@ RET_VALUE   SERIAL_puts(SERIAL_HANDLE serialHandle, const uint8_t* const buffer,
     ASSERT(serialHandle != NULL);
 
     RET_VALUE   ret = RET_OK;
-    
+
     if( xSemaphoreTake( serialHandle->semaphore, timeout) != pdPASS )
     {
         ret = RET_ERROR;
     }
     else
-    {        
+    {
         if (serialHandle->outputEnable)
         {
             serialHandle->outputEnable(true);
         }
-        
+
         if (HAL_UART_Transmit(&serialHandle->uart, (uint8_t *)buffer, length, timeout) != HAL_OK)
         {
             ret = RET_ERROR;
@@ -276,17 +283,17 @@ RET_VALUE   SERIAL_puts(SERIAL_HANDLE serialHandle, const uint8_t* const buffer,
             serialHandle->outputEnable(false);
             //osDelay(100);
         }
-        
+
         xSemaphoreGive( serialHandle->semaphore);
     }
-    
+
     return  ret;
 }
 
 /*-----------------------------------------------------------*/
 
 uint8_t SERIAL_getc(SERIAL_HANDLE serialHandle, uint8_t *value, uint32_t timeout)
-{ 
+{
     if (xQueueReceive(serialHandle->rxQueue, value, timeout))
     {
         return  RET_OK;
@@ -304,30 +311,30 @@ uint8_t SERIAL_putc(SERIAL_HANDLE serialHandle, uint8_t value, uint32_t timeout)
     ASSERT(serialHandle != NULL);
 
     RET_VALUE   ret = RET_OK;
-    
+
     if( xSemaphoreTake( serialHandle->semaphore, timeout) != pdPASS )
     {
         ret = RET_ERROR;
     }
     else
-    {        
+    {
         if (serialHandle->outputEnable)
         {
             serialHandle->outputEnable(true);
         }
-        
+
          if (HAL_UART_Transmit(&serialHandle->uart, &value, 1, timeout) != HAL_OK)
         {
             ret = RET_ERROR;
         }
-        
+
         if (serialHandle->outputEnable)
         {
             serialHandle->outputEnable(false);
         }
         xSemaphoreGive( serialHandle->semaphore);
     }
-    
+
     return  ret;
 }
 
@@ -336,22 +343,22 @@ uint8_t SERIAL_putc(SERIAL_HANDLE serialHandle, uint8_t value, uint32_t timeout)
 RET_VALUE    SERIAL_printf
 (
     SERIAL_HANDLE   serialHandle,
-    const char *format, 
-    ... 
+    const char *format,
+    ...
 )
 {
    va_list  ap;
    uint32_t length = 0;
    static uint8_t  buffer[128];
-   
+
 #if 0
     TIME_STRUCT time;
     uint8_t     timeBuffer[64];
-   
+
     _time_get(&time);
-    FTE_TIME_toStr(&time, timeBuffer, sizeof(timeBuffer));   
+    FTE_TIME_toStr(&time, timeBuffer, sizeof(timeBuffer));
     length = sprintf(&buffer[length], "[%s] ", timeBuffer);
-#endif   
+#endif
     va_start(ap, format);
     vsnprintf((char *)&buffer[length], sizeof(buffer) - length,  (char *)format, ap );
     va_end(ap);
@@ -407,13 +414,13 @@ char* SERIAL_stopBitsName(SERIAL_STOP_BITS stopBits)
     }
 }
 
-static char*    parityNames_[] = 
+static char*    parityNames_[] =
 {
-	"NONE", 
-	"ODD", 
-	"EVEN", 
-	"MARK", 
-	"SPACE"    
+	"NONE",
+	"ODD",
+	"EVEN",
+	"MARK",
+	"SPACE"
 };
 
 char*   SERIAL_parityName(SERIAL_PARITY parity)
@@ -422,16 +429,16 @@ char*   SERIAL_parityName(SERIAL_PARITY parity)
     {
         return  parityNames_[parity];
     }
-    
+
     return  "unknown";
 }
 
 void USARTx_IRQHandler(SERIAL *serial)
 {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-    
+
     HAL_UART_IRQHandler(&serial->uart);
-    
+
     if (serial->uart.RxXferSize != serial->uart.RxXferCount)
     {
 
@@ -439,7 +446,7 @@ void USARTx_IRQHandler(SERIAL *serial)
         serial->uart.RxXferCount++;
         xQueueSendFromISR(serial->rxQueue, serial->uart.pRxBuffPtr, &xHigherPriorityTaskWoken);
     }
-    
+
     if( xHigherPriorityTaskWoken )
 	{
 	//	portYIELD();
@@ -472,10 +479,15 @@ void UART5_IRQHandler(void)
     USARTx_IRQHandler(&serials_[SERIAL_PORT_5]);
 }
 
+void USART6_IRQHandler(void)
+{
+    USARTx_IRQHandler(&serials_[SERIAL_PORT_6]);
+}
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
     assert_param(huart != NULL);
-    
+
     huart->pRxBuffPtr -= huart->RxXferSize;
     huart->RxXferCount = huart->RxXferSize;
 }

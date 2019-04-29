@@ -221,6 +221,7 @@
                     <name>CCDefines</name>
                     <state>USE_HAL_DRIVER</state>
                     <state>STM32H743xx</state>
+                    <state>SUPPORT_DRAM</state>
                 </option>
                 <option>
                     <name>CCPreprocFile</name>
@@ -1080,6 +1081,9 @@
                         <name>$PROJ_DIR$\..\App\task_main.c</name>
                     </file>
                 </group>
+                <file>
+                    <name>$PROJ_DIR$\..\App\comport.c</name>
+                </file>
                 <file>
                     <name>$PROJ_DIR$\..\App\config.c</name>
                 </file>

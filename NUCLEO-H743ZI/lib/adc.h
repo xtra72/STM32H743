@@ -1,8 +1,6 @@
 #ifndef ADC_H__
 #define ADC_H__
 
-#include "target.h"
-
 #ifndef TARGET_ADC_COUNT_MAX
 #define ADC_COUNT_MAX           2
 #else
@@ -38,6 +36,7 @@ typedef struct
 
 typedef struct
 {
+    bool                enable;
     uint32_t            channelCount;
     ADC_CHANNEL_CONFIG  channels[ADC_CHANNEL_COUNT_MAX];
     uint32_t            dataCount;

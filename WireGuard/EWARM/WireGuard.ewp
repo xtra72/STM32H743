@@ -222,6 +222,7 @@
                     <state>USE_HAL_DRIVER</state>
                     <state>STM32H743xx</state>
                     <state>SUPPORT_DRAM</state>
+                    <state>SWG_DEVICE</state>
                 </option>
                 <option>
                     <name>CCPreprocFile</name>
@@ -346,10 +347,12 @@
                 </option>
                 <option>
                     <name>CCIncludePath2</name>
-                    <state>$PROJ_DIR$/../lib</state>
-                    <state>$PROJ_DIR$/../app</state>
-                    <state>$PROJ_DIR$/../app/shell</state>
-                    <state>$PROJ_DIR$/../lib/st</state>
+                    <state>$PROJ_DIR$/../../Common/lib</state>
+                    <state>$PROJ_DIR$/../../Common/app</state>
+                    <state>$PROJ_DIR$/../../Common/app/rf</state>
+                    <state>$PROJ_DIR$/../../Common/app/swg</state>
+                    <state>$PROJ_DIR$/../../Common/app/shell</state>
+                    <state>$PROJ_DIR$/../../Common/Lib/st</state>
                     <state>$PROJ_DIR$/../task</state>
                     <state>$PROJ_DIR$/../FATFS/Target</state>
                     <state>$PROJ_DIR$/../FATFS/App</state>
@@ -1049,46 +1052,67 @@
             <group>
                 <name>App</name>
                 <group>
-                    <name>shell</name>
+                    <name>rf</name>
                     <file>
-                        <name>$PROJ_DIR$\..\App\shell\shell.c</name>
+                        <name>$PROJ_DIR$\..\..\Common\App\rf\rf.c</name>
                     </file>
                     <file>
-                        <name>$PROJ_DIR$\..\App\shell\shell_1231.c</name>
-                    </file>
-                    <file>
-                        <name>$PROJ_DIR$\..\App\shell\shell_adc.c</name>
-                    </file>
-                    <file>
-                        <name>$PROJ_DIR$\..\App\shell\shell_config.c</name>
-                    </file>
-                    <file>
-                        <name>$PROJ_DIR$\..\App\shell\shell_monitor.c</name>
-                    </file>
-                    <file>
-                        <name>$PROJ_DIR$\..\App\shell\shell_rf.c</name>
-                    </file>
-                    <file>
-                        <name>$PROJ_DIR$\..\App\shell\shell_scan.c</name>
-                    </file>
-                    <file>
-                        <name>$PROJ_DIR$\..\App\shell\shell_sdram.c</name>
+                        <name>$PROJ_DIR$\..\..\Common\App\rf\rf.h</name>
                     </file>
                 </group>
                 <group>
-                    <name>task</name>
+                    <name>shell</name>
                     <file>
-                        <name>$PROJ_DIR$\..\App\task_main.c</name>
+                        <name>$PROJ_DIR$\..\..\Common\App\shell\shell.c</name>
+                    </file>
+                    <file>
+                        <name>$PROJ_DIR$\..\..\Common\App\shell\shell.h</name>
+                    </file>
+                    <file>
+                        <name>$PROJ_DIR$\..\..\Common\App\shell\shell_1231.c</name>
+                    </file>
+                    <file>
+                        <name>$PROJ_DIR$\..\..\Common\App\shell\shell_adc.c</name>
+                    </file>
+                    <file>
+                        <name>$PROJ_DIR$\..\..\Common\App\shell\shell_cmd.c</name>
+                    </file>
+                    <file>
+                        <name>$PROJ_DIR$\..\..\Common\App\shell\shell_config.c</name>
+                    </file>
+                    <file>
+                        <name>$PROJ_DIR$\..\..\Common\App\shell\shell_monitor.c</name>
+                    </file>
+                    <file>
+                        <name>$PROJ_DIR$\..\..\Common\App\shell\shell_rf.c</name>
+                    </file>
+                    <file>
+                        <name>$PROJ_DIR$\..\..\Common\App\shell\shell_scan.c</name>
+                    </file>
+                    <file>
+                        <name>$PROJ_DIR$\..\..\Common\App\shell\shell_sdram.c</name>
                     </file>
                 </group>
                 <file>
-                    <name>$PROJ_DIR$\..\App\comport.c</name>
+                    <name>$PROJ_DIR$\..\..\Common\App\comport.c</name>
                 </file>
                 <file>
-                    <name>$PROJ_DIR$\..\App\config.c</name>
+                    <name>$PROJ_DIR$\..\..\Common\App\comport.h</name>
                 </file>
                 <file>
-                    <name>$PROJ_DIR$\..\App\shell_cmd.c</name>
+                    <name>$PROJ_DIR$\..\..\Common\App\swg\config.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\Common\App\config.h</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\Common\App\swg\target.h</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\Common\App\task_main.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\Common\App\task_main.h</name>
                 </file>
             </group>
             <group>
@@ -1140,51 +1164,84 @@
                 </group>
             </group>
             <group>
-                <name>lib</name>
+                <name>Lib</name>
                 <group>
                     <name>st</name>
                     <file>
-                        <name>$PROJ_DIR$\..\lib\st\sx1231.c</name>
+                        <name>$PROJ_DIR$\..\..\Common\Lib\st\sx1231.c</name>
                     </file>
                 </group>
                 <group>
                     <name>sys</name>
                     <file>
-                        <name>$PROJ_DIR$\..\lib\sys\stm32h7xx_sys.c</name>
+                        <name>$PROJ_DIR$\..\..\Common\Lib\sys\stm32h7xx_sys.c</name>
                     </file>
                 </group>
                 <file>
-                    <name>$PROJ_DIR$\..\lib\adc.c</name>
+                    <name>$PROJ_DIR$\..\..\Common\Lib\adc.c</name>
                 </file>
                 <file>
-                    <name>$PROJ_DIR$\..\lib\crc16.c</name>
+                    <name>$PROJ_DIR$\..\..\Common\Lib\adc.h</name>
                 </file>
                 <file>
-                    <name>$PROJ_DIR$\..\lib\monitor.c</name>
+                    <name>$PROJ_DIR$\..\..\Common\Lib\assert.h</name>
                 </file>
                 <file>
-                    <name>$PROJ_DIR$\..\lib\rf.c</name>
+                    <name>$PROJ_DIR$\..\..\Common\Lib\crc16.c</name>
                 </file>
                 <file>
-                    <name>$PROJ_DIR$\..\lib\scan.c</name>
+                    <name>$PROJ_DIR$\..\..\Common\Lib\crc16.h</name>
                 </file>
                 <file>
-                    <name>$PROJ_DIR$\..\lib\sdram.c</name>
+                    <name>$PROJ_DIR$\..\..\Common\Lib\monitor.c</name>
                 </file>
                 <file>
-                    <name>$PROJ_DIR$\..\lib\serial.c</name>
+                    <name>$PROJ_DIR$\..\..\Common\Lib\monitor.h</name>
                 </file>
                 <file>
-                    <name>$PROJ_DIR$\..\lib\system.c</name>
+                    <name>$PROJ_DIR$\..\..\Common\Lib\ret_value.h</name>
                 </file>
                 <file>
-                    <name>$PROJ_DIR$\..\lib\time2.c</name>
+                    <name>$PROJ_DIR$\..\..\Common\Lib\scan.c</name>
                 </file>
                 <file>
-                    <name>$PROJ_DIR$\..\lib\trace.c</name>
+                    <name>$PROJ_DIR$\..\..\Common\Lib\scan.h</name>
                 </file>
                 <file>
-                    <name>$PROJ_DIR$\..\lib\utils.c</name>
+                    <name>$PROJ_DIR$\..\..\Common\Lib\sdram.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\Common\Lib\sdram.h</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\Common\Lib\serial.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\Common\Lib\serial.h</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\Common\Lib\system.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\Common\Lib\system.h</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\Common\Lib\time2.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\Common\Lib\time2.h</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\Common\Lib\trace.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\Common\Lib\trace.h</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\Common\Lib\utils.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\Common\Lib\utils.h</name>
                 </file>
             </group>
         </group>

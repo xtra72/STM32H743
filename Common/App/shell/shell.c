@@ -231,7 +231,7 @@ void SHELL_main( void const *params )
             vTaskDelay(0);
         }
 
-        if (value == cmdASCII_CR)
+        if ((value == cmdASCII_LF) || (value == cmdASCII_CR))
         {
             break;
         }
@@ -308,7 +308,7 @@ int SHELL_getLine( char* line, uint32_t maxLength, bool secure)
         }
 
         /* Was it the end of the line? */
-        if( value == cmdASCII_CR)
+        if(( value == cmdASCII_CR) || ( value == cmdASCII_LF))
         {
             /* Just to space the output from the input. */
             SERIAL_puts(serial_, (uint8_t const *)newLine_, strlen( newLine_ ), HAL_MAX_DELAY );
@@ -323,10 +323,6 @@ int SHELL_getLine( char* line, uint32_t maxLength, bool secure)
                 readLength --;
                 line[ readLength ] = '\0';
             }
-        }
-        else if( value == cmdASCII_LF )
-        {
-            // Skip
         }
         else
         {

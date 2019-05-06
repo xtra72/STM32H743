@@ -55,7 +55,7 @@ static const SHELL_COMMAND   commandSet_[] =
     }
 };
 
-RET_VALUE   SHELL_scan(char *argv[], uint32_t argc, struct _SHELL_COMMAND  const* command)
+RET_VALUE   SHELL_SCAN(char *argv[], uint32_t argc, struct _SHELL_COMMAND  const* command)
 {
     RET_VALUE   ret = RET_INVALID_COMMAND;
     if (argc == 1)
@@ -113,10 +113,29 @@ RET_VALUE SHELL_SCAN_help(char *argv[], uint32_t argc, struct _SHELL_COMMAND con
     return  RET_OK;
 }
 
+RET_VALUE SHELL_SCAN_info(void)
+{
+    SHELL_printf("%16s : %s\n", "Round Status", SCAN_isRun()?"Run":"Stop");
+    SHELL_printf("%16s : %d ms\n", "Interval", SCAN_getInterval());
+    SHELL_printf("%16s : %d\n", "Current Count", SCAN_getCurrentLoop());
+    SHELL_printf("%16s : %d\n", "Max Count", SCAN_getMaxLoop());
+
+    return  RET_OK;
+}
 
 RET_VALUE SHELL_SCAN_start(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
 {
-    if (SCAN_start() != RET_OK)
+    uint32_t    dataReset = 0;
+
+    if ( argc > 1)
+    {
+        if (!strToUint32(argv[1], &dataReset))
+        {
+            return  RET_INVALID_ARGUMENT;
+        }
+    }
+
+    if (SCAN_start(dataReset) != RET_OK)
     {
         SHELL_printf("Scan start failed.\n");
     }

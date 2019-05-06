@@ -40,7 +40,13 @@
 
 #define TARGET_RF_BITRATE               4800
 #define TARGET_RF_PAYLOAD_MAX           60
-#define TARGET_RF_TIMEOUT               1000
+#define TARGET_RF_TIMEOUT               200
+
+#ifdef  SWG_HOST
+#ifndef SUPPORT_COM
+#define SUPPORT_COM 1
+#endif
+#endif
 
 #include "main.h"
 

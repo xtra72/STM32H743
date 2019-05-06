@@ -40,7 +40,6 @@ RET_VALUE COM_COMMAND_help(char *argv[], uint32_t argc, struct _COM_COMMAND cons
 
 /* Const messages output by the command console. */
 //static const char * const inputPassword_ = "Input Password : ";
-static  const char * const prompt_ = "%s> ";
 static  const char * const newLine_ = "\r\n";
 static  COM_CONFIG    config_;
 
@@ -192,24 +191,6 @@ void COM_main( void const *params )
         return ;
     }
 
-    while(1)
-    {
-        uint8_t     value;
-        while(  SERIAL_getc(serial_, &value, 100 ) != RET_OK)
-        {
-            vTaskDelay(0);
-        }
-
-        if (value == cmdASCII_CR)
-        {
-            break;
-        }
-
-    }
-
-//    FI_TIME_get(&currentTime);
-//    COM_printf("Date : %s\n", FI_TIME_toString(currentTime, "%Y-%m-%d %H:%M:%S"));
-
 	for( ;; )
 	{
 
@@ -217,32 +198,35 @@ void COM_main( void const *params )
             ;
 
         memset(line, 0, sizeof(line));
-        SERIAL_printf(serial_, prompt_, CONFIG_PRODUCT_NAME );
-
         length = COM_getLine( line, sizeof(line), 0 );
         if (length != 0)
         {
             char*       argv[COM_CONFIG_MAX_ARGUMENT_COUNT];
             uint32_t    argc;
 
+            SHELL_printf("CMD : %s\n", line);
+            ret = RET_INVALID_ARGUMENT;
             strcpy(buffer, line);
             argc = COM_parser(buffer, argv, COM_CONFIG_MAX_ARGUMENT_COUNT);
-            for(i = 0 ;  i < commandCount ; i++)
+            if (argc  > 0)
             {
-                if (strcasecmp(commands_[i].name, argv[0]) == 0)
+                for(i = 0 ;  i < commandCount ; i++)
                 {
-                    ret = commands_[i].function(argv, argc, &commands_[i]);
-                    break;
+                    if (strcasecmp(commands_[i].name, argv[0]) == 0)
+                    {
+                        ret = commands_[i].function(argv, argc, &commands_[i]);
+                        break;
+                    }
                 }
             }
 
-            if (i == commandCount)
+            if (ret == RET_OK)
             {
-                SERIAL_printf(serial_, "Command not found.\n");
+                COM_print("OK\n");
             }
-            else if (ret == RET_INVALID_ARGUMENT)
+            else
             {
-                COM_printf("Invalid argument!\n");
+                COM_print("ERR\n");
             }
         }
 	}
@@ -272,7 +256,7 @@ int COM_getLine( char* line, uint32_t maxLength, bool secure)
         }
 
         /* Was it the end of the line? */
-        if( value == cmdASCII_CR)
+        if(( value == cmdASCII_CR) || ( value == cmdASCII_LF))
         {
             /* Just to space the output from the input. */
             SERIAL_puts(serial_, (uint8_t const *)newLine_, strlen( newLine_ ), HAL_MAX_DELAY );
@@ -287,10 +271,6 @@ int COM_getLine( char* line, uint32_t maxLength, bool secure)
                 readLength --;
                 line[ readLength ] = '\0';
             }
-        }
-        else if( value == cmdASCII_LF )
-        {
-            // Skip
         }
         else
         {
@@ -318,22 +298,26 @@ uint32_t    COM_parser(char* line, char* arguments[], uint32_t maxArgumentCount 
     char*   token;
     uint32_t    argumentCount = 0;
 
-//    token = strtok(line, " ");
-    token = COM_token(line);
-    if (token != NULL)
+    if (strncasecmp(line, "AT+", 3) == 0)
     {
-        arguments[argumentCount++] = token;
+        line += 3;
 
-        while(argumentCount < maxArgumentCount)
+        token = COM_token(line);
+        if (token != NULL)
         {
-            token = COM_token(NULL);
-            //token = strtok(NULL, " ");
-            if (token == NULL)
-            {
-                break;
-            }
-
             arguments[argumentCount++] = token;
+
+            while(argumentCount < maxArgumentCount)
+            {
+                token = COM_token(NULL);
+                //token = strtok(NULL, " ");
+                if (token == NULL)
+                {
+                    break;
+                }
+
+                arguments[argumentCount++] = token;
+            }
         }
     }
 
@@ -353,7 +337,7 @@ char*   COM_token(char* line)
 
     while(*head != NULL)
     {
-        if (*head != ' ')
+        if ((*head != ',') && (*head != ':'))
         {
             break;
         }
@@ -406,7 +390,7 @@ char*   COM_token(char* line)
     {
         while(*ptr != NULL)
         {
-            if (*ptr == ' ')
+            if ((*ptr == ',') || (*ptr == ':'))
             {
                 break;
             }

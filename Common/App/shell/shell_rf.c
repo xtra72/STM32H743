@@ -3,20 +3,21 @@
 #include "shell.h"
 #include "rf.h"
 #include "utils.h"
+#include "shell_rf.h"
 
 #define __MODULE_NAME__ "SHELL"
 #include "trace.h"
 
-RET_VALUE SHELL_RF_help(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
-RET_VALUE SHELL_RF_start(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
-RET_VALUE SHELL_RF_stop(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
-RET_VALUE SHELL_RF_reset(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
-RET_VALUE SHELL_RF_reg(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
-RET_VALUE SHELL_RF_send(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
-RET_VALUE SHELL_RF_recv(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
-RET_VALUE SHELL_RF_config(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
-RET_VALUE SHELL_RF_cmd(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
-RET_VALUE SHELL_RF_test(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
+RET_VALUE   SHELL_RF_help(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
+RET_VALUE   SHELL_RF_start(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
+RET_VALUE   SHELL_RF_stop(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
+RET_VALUE   SHELL_RF_reset(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
+RET_VALUE   SHELL_RF_reg(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
+RET_VALUE   SHELL_RF_send(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
+RET_VALUE   SHELL_RF_recv(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
+RET_VALUE   SHELL_RF_config(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
+RET_VALUE   SHELL_RF_cmd(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
+RET_VALUE   SHELL_RF_test(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
 
 static const SHELL_COMMAND   commandSet_[] =
 {
@@ -75,16 +76,12 @@ static const SHELL_COMMAND   commandSet_[] =
     }
 };
 
-RET_VALUE   SHELL_rf(char *argv[], uint32_t argc, struct _SHELL_COMMAND  const* command)
+RET_VALUE   SHELL_RF(char *argv[], uint32_t argc, struct _SHELL_COMMAND  const* command)
 {
     RET_VALUE   ret = RET_INVALID_COMMAND;
     if (argc == 1)
     {
-        SHELL_printf("%16s : %s\n", "Status", RF_getStatusString(RF_getStatus()));
-        SHELL_printf("%16s : %04x\n", "Short Address", RF_getShortAddress());
-        SHELL_printf("%16s : %s\n", "Confirmed", RF_getConfirmed()?"On":"Off");
-        SHELL_printf("%16s : %d bps\n", "Bitrate", RF_getBitrate());
-        SHELL_printf("%16s : %d\n", "Payload Length", RF_getMaxPayloadLength());
+        SHELL_RF_info();
 
     }
     else
@@ -118,6 +115,17 @@ RET_VALUE SHELL_RF_help(char *argv[], uint32_t argc, struct _SHELL_COMMAND const
     return  RET_OK;
 }
 
+RET_VALUE SHELL_RF_info(void)
+{
+    SHELL_printf("%16s : %s\n", "Status", RF_getStatusString(RF_getStatus()));
+    SHELL_printf("%16s : %04x\n", "Short Address", RF_getShortAddress());
+    SHELL_printf("%16s : %s\n", "Confirmed", RF_getConfirmed()?"On":"Off");
+    SHELL_printf("%16s : %d bps\n", "Bitrate", RF_getBitrate());
+    SHELL_printf("%16s : %d\n", "Payload Length", RF_getMaxPayloadLength());
+    SHELL_printf("%16s : %d ms\n", "Timeout", RF_getTimeout());
+
+    return RET_OK;
+}
 
 RET_VALUE SHELL_RF_start(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
 {
@@ -226,14 +234,46 @@ RET_VALUE SHELL_RF_config(char *argv[], uint32_t argc, struct _SHELL_COMMAND con
                 return  RET_INVALID_ARGUMENT;
             }
 
-            if (RF_setBitrate(value) == RET_OK)
-            {
-                SHELL_printf("RF speed : %d\n", RF_getBitrate());
-            }
-            else
+            if (RF_setBitrate(value) != RET_OK)
             {
                 SHELL_printf("Invalid argument!\n");
             }
+
+            SHELL_printf("RF Speed : %d\n", RF_getBitrate());
+        }
+        else if (strcasecmp(argv[1], "address") == 0)
+        {
+            uint16_t    value = 0;
+
+            if (!strToUint16(argv[2], &value))
+            {
+                SHELL_printf("Invalid argument!\n");
+                return  RET_INVALID_ARGUMENT;
+            }
+
+            if (RF_setShortAddress(value) != RET_OK)
+            {
+                SHELL_printf("Invalid argument!\n");
+            }
+
+            SHELL_printf("RF Short Address : %d\n", RF_getShortAddress());
+        }
+        else if (strcasecmp(argv[1], "address") == 0)
+        {
+            uint16_t    value = 0;
+
+            if (!strToUint16(argv[2], &value))
+            {
+                SHELL_printf("Invalid argument!\n");
+                return  RET_INVALID_ARGUMENT;
+            }
+
+            if (RF_setShortAddress(value) != RET_OK)
+            {
+                SHELL_printf("Invalid argument!\n");
+            }
+
+            SHELL_printf("RF Short Address : %d\n", RF_getShortAddress());
         }
     }
 
@@ -259,7 +299,7 @@ RET_VALUE SHELL_RF_cmd(char *argv[], uint32_t argc, struct _SHELL_COMMAND const*
                 }
                 else
                 {
-                    RF_sendStartScan(destAddress, 0);
+                    RF_sendStartScan(destAddress, false, 200);
                 }
             }
             else if (strcasecmp(argv[2], "stop") == 0)
@@ -276,11 +316,20 @@ RET_VALUE SHELL_RF_cmd(char *argv[], uint32_t argc, struct _SHELL_COMMAND const*
                 }
             }
         }
-        else if (strcasecmp(argv[1], "data") == 0)
+    }
+    else if (argc == 5)
+    {
+        if (strcasecmp(argv[1], "data") == 0)
         {
             if (strcasecmp(argv[2], "count") == 0)
             {
-                ret = RF_sendRequestDataCount(0x0000, 5000);
+                uint32_t    nodeId;
+                if (!strToUint32(argv[3], &nodeId))
+                {
+                    SHELL_printf("Invalid argument!\n");
+                }
+
+                ret = RF_sendRequestDataCount(nodeId, 5000);
                 if (ret != RET_OK)
                 {
                     SHELL_printf("Data count request failed!\n");
@@ -288,21 +337,22 @@ RET_VALUE SHELL_RF_cmd(char *argv[], uint32_t argc, struct _SHELL_COMMAND const*
             }
         }
     }
-    if (argc == 5)
+    if (argc == 6)
     {
         if (strcasecmp(argv[1], "data") == 0)
         {
             if (strcasecmp(argv[2], "get") == 0)
             {
+                uint32_t    nodeId = 0;
                 uint32_t    offset = 0;
                 uint32_t    count = 0;
 
-                if (!strToUint32(argv[3], &offset) || !strToUint32(argv[4], &count))
+                if (!strToUint32(argv[3], &nodeId) || !strToUint32(argv[4], &offset) || !strToUint32(argv[5], &count))
                 {
                     SHELL_printf("Invalid argument!\n");
                 }
 
-                ret = RF_sendRequestData(0x0000, offset, count, 5000);
+                ret = RF_sendRequestData(nodeId, offset, count, 5000);
                 if (ret != RET_OK)
                 {
                     SHELL_printf("Data get request failed!\n");
@@ -316,7 +366,6 @@ RET_VALUE SHELL_RF_cmd(char *argv[], uint32_t argc, struct _SHELL_COMMAND const*
 
 RET_VALUE SHELL_RF_test(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
 {
-    RET_VALUE   ret;
     static  uint16_t    destAddress = 0;
     static  uint8_t     port = 0;
     static  uint32_t    count = 0;

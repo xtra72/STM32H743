@@ -78,7 +78,8 @@ const CONFIG  defaultConfig =
         .enable = true,
         .confirmed = false,
         .bitrate = 4800,
-        .maxPayloadLength = 60
+        .maxPayloadLength = 60,
+        .timeout = 250
     },
     .shell =
     {

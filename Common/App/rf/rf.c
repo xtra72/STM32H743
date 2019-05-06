@@ -20,6 +20,7 @@
 #include "trace.h"
 
 static  void        RF_taskMain(void const * argument);
+static  RET_VALUE   RF_waitingForAck(uint32_t _timeout);
 
 static  SPI_HandleTypeDef*  spi_ = NULL;
 
@@ -37,6 +38,7 @@ static  bool                stop_ = true;
 static  SemaphoreHandle_t   semaphore_ = NULL;
 static  RF_STATUS           status_ = RF_STATUS_STOPPED;
 static  uint16_t            upCount_ = 0;
+static  bool                ackReceived_ = false;
 
 static  RF_STATISTICS       statistics_ =
 {
@@ -63,9 +65,11 @@ static  const char*   statusStrings_[] =
 RET_VALUE   RF_init(SPI_HandleTypeDef* spi)
 {
     semaphore_ = xSemaphoreCreateMutex();
+
     spi_ = spi;
 
     SX1231_init();
+
 
     return  RET_OK;
 }
@@ -104,7 +108,6 @@ RET_VALUE   RF_stop(void)
 
 void RF_taskMain(void const * argument)
 {
-    RET_VALUE   ret;
     DEBUG("RF task start!\n");
 
     uint8_t     buffer[RF_BUFFER_SIZE_MAX];
@@ -124,7 +127,7 @@ void RF_taskMain(void const * argument)
         uint8_t     port = 0;
         uint8_t     options = 0;
 
-        if (RF_recv(buffer, sizeof(buffer), &dataLength, &srcAddress, &port, &options, 100) == RET_OK)
+        if (RF_recv(buffer, sizeof(buffer), &dataLength, &srcAddress, &port, &options, 1000) == RET_OK)
         {
 #if 0
             DEBUG("RCVD : %d\n", dataLength);
@@ -135,22 +138,43 @@ void RF_taskMain(void const * argument)
             DEBUG("Port : %d\n", port);
             switch(port)
             {
+            case    RF_CMD_ACK:
+                {
+                    ackReceived_ = true;
+                }
+                break;
+
 #if SUPPORT_DRAM
             case    RF_CMD_START_SCAN:
                 {
-                    SCAN_start();
+                    bool    reset = false;
+
+                    if (dataLength == 1)
+                    {
+                        reset = (*buffer != 0);
+                    }
+
+                    if (SCAN_start(reset) == RET_OK)
+                    {
+                        RF_sendACK(srcAddress, config_.timeout);
+                    }
+
                 }
                 break;
 
             case    RF_CMD_STOP_SCAN:
                 {
-                    SCAN_stop();
+                    if (SCAN_stop() == RET_OK)
+                    {
+                        RF_sendACK(srcAddress, config_.timeout);
+                    }
                 }
                 break;
 #endif
             case    RF_CMD_REP_DATA_COUNT:
                 {
                     DEBUG("Data Count : %d\n", ntohUint32((*(uint32_t *)buffer)));
+                    ackReceived_ = true;
                 }
                 break;
 
@@ -164,7 +188,7 @@ void RF_taskMain(void const * argument)
 
                     offset  = ntohUint32((*(uint32_t *)&buffer[0]));
                     time    = ntohUint32((*(uint32_t *)&buffer[4]));
-                    outputLength = snprintf(output, sizeof(output), "%d,%d", offset, time);
+                    outputLength = snprintf(output, sizeof(output), "%04x,%d,%d", srcAddress, offset, time);
 
                     for(uint32_t j =  8 ; j <  dataLength ; j+=2)
                     {
@@ -172,7 +196,7 @@ void RF_taskMain(void const * argument)
                         outputLength += snprintf(&output[outputLength], sizeof(output) - outputLength, ",%d", value);
                     }
 
-                    COM_printf("AT+DATA: %s\n", output);
+                    COM_printf("+DATA: %s\n", output);
                 }
                 break;
 #endif
@@ -191,8 +215,12 @@ void RF_taskMain(void const * argument)
 
             case    RF_CMD_REQ_DATA:
                 {
+                    RET_VALUE   ret;
                     uint32_t    offset = 0;
                     uint32_t    count = 0;
+
+                    RF_sendACK(srcAddress, config_.timeout);
+                    osDelay(config_.timeout);
 
                     offset = ntohUint32(((uint32_t*)buffer)[0]);
                     count = ntohUint32(((uint32_t*)buffer)[1]);
@@ -202,22 +230,30 @@ void RF_taskMain(void const * argument)
                         DEBUG("Out of index : %d\n", SCAN_getCurrentLoop());
                     }
 
-                    for(uint32_t i = 0 ; i < count ; i++)
+                    for(uint32_t i = 0 ; i < count / 2 ; i++)
                     {
                         uint8_t    buffer[RF_PAYLOAD_SIZE_MAX];
                         uint32_t    length = 0;
 
                         SCAN_LOOP_DATA*   data;
 
-                        data = SCAN_getLoopData(offset + i);
-                        buffer[length++] = ((offset + i) >> 24) & 0xFF;
-                        buffer[length++] = ((offset + i) >> 16) & 0xFF;
-                        buffer[length++] = ((offset + i) >>  8) & 0xFF;
-                        buffer[length++] = ((offset + i)      ) & 0xFF;
+                        buffer[length++] = ((offset + i*2) >> 24) & 0xFF;
+                        buffer[length++] = ((offset + i*2) >> 16) & 0xFF;
+                        buffer[length++] = ((offset + i*2) >>  8) & 0xFF;
+                        buffer[length++] = ((offset + i*2)      ) & 0xFF;
                         buffer[length++] = (data->time >> 24) & 0xFF;
                         buffer[length++] = (data->time >> 16) & 0xFF;
                         buffer[length++] = (data->time >>  8) & 0xFF;
                         buffer[length++] = (data->time      ) & 0xFF;
+
+                        data = SCAN_getLoopData(offset + i*2);
+                        for(uint32_t j =  0 ; j <  ADC_CHANNEL_getCount() ; j++)
+                        {
+                            buffer[length++] = (data->data[j] >>  8) & 0xFF;
+                            buffer[length++] = (data->data[j]      ) & 0xFF;
+                        }
+
+                        data = SCAN_getLoopData(offset + i*2+1);
                         for(uint32_t j =  0 ; j <  ADC_CHANNEL_getCount() ; j++)
                         {
                             buffer[length++] = (data->data[j] >>  8) & 0xFF;
@@ -235,11 +271,6 @@ void RF_taskMain(void const * argument)
 #endif
             default:
                 DEBUG("Unknown CMD : %02x\n", port);
-            }
-
-            if (options & 0x01)
-            {
-                DEBUG("ACK\n");
             }
         }
 
@@ -292,6 +323,10 @@ RF_BIT_RATE bitrateTables [] =
     {   0,      0,                          0}
 };
 
+uint32_t    RF_getTimeout(void)
+{
+    return  config_.timeout;
+}
 
 RF_STATUS   RF_getStatus(void)
 {
@@ -505,19 +540,76 @@ RET_VALUE   RF_send(uint16_t _destAddress, uint8_t _port, uint8_t* _data, uint32
     return  ret;
 }
 
-RET_VALUE   RF_sendStartScan(uint16_t _destAddress, uint32_t _timeout)
+RET_VALUE   RF_sendStartScan(uint16_t _destAddress, bool _reset, uint32_t _timeout)
 {
-    return  RF_send(_destAddress, RF_CMD_START_SCAN, NULL, 0, RF_OPTIONS_ACK, _timeout);
+    RET_VALUE   ret;
+    uint32_t    expireTick;
+
+    expireTick = TICK_get() + _timeout;
+
+    TRACE("Send Start Scan\n");
+    ret = RF_send(_destAddress, RF_CMD_START_SCAN, (uint8_t*)&_reset, 1, RF_OPTIONS_ACK, _timeout);
+    if (ret == RET_OK)
+    {
+        if (expireTick <= TICK_get())
+        {
+            ret = RET_TIMEOUT;
+        }
+        else
+        {
+            ret = RF_waitingForAck(expireTick - TICK_get());
+        }
+    }
+
+    return  ret;
 }
 
 RET_VALUE   RF_sendStopScan(uint16_t _destAddress, uint32_t _timeout)
 {
-    return  RF_send(_destAddress, RF_CMD_STOP_SCAN, NULL, 0, RF_OPTIONS_ACK, _timeout);
+    RET_VALUE   ret;
+    uint32_t    expireTick;
+
+    expireTick = TICK_get() + _timeout;
+
+    TRACE("Send Start Scan\n");
+    ret = RF_send(_destAddress, RF_CMD_STOP_SCAN, NULL, 0, RF_OPTIONS_ACK, _timeout);
+    if (ret == RET_OK)
+    {
+        if (expireTick <= TICK_get())
+        {
+            ret = RET_TIMEOUT;
+        }
+        else
+        {
+            ret = RF_waitingForAck(expireTick - TICK_get());
+        }
+    }
+
+    return  ret;
 }
 
 RET_VALUE   RF_sendRequestDataCount(uint16_t _destAddress, uint32_t _timeout)
 {
-    return  RF_send(_destAddress, RF_CMD_REQ_DATA_COUNT, NULL, 0, 0, _timeout);
+    RET_VALUE   ret;
+    uint32_t    expireTick;
+
+    expireTick = TICK_get() + _timeout;
+
+    TRACE("Send Start Scan\n");
+    ret = RF_send(_destAddress, RF_CMD_REQ_DATA_COUNT, NULL, 0, RF_OPTIONS_ACK, _timeout);
+    if (ret == RET_OK)
+    {
+        if (expireTick <= TICK_get())
+        {
+            ret = RET_TIMEOUT;
+        }
+        else
+        {
+            ret = RF_waitingForAck(expireTick - TICK_get());
+        }
+    }
+
+    return  ret;
 }
 
 RET_VALUE   RF_sendResponseDataCount(uint16_t _destAddress, uint32_t _count, uint32_t _timeout)
@@ -564,8 +656,12 @@ RET_VALUE   RF_recvResponseDataCount(uint16_t* _srcAddress, uint32_t* _count, ui
 
 RET_VALUE   RF_sendRequestData(uint16_t _destAddress, uint32_t _offset, uint32_t _count, uint32_t _timeout)
 {
+    RET_VALUE   ret;
     uint8_t buffer[RF_PAYLOAD_SIZE_MAX];
     uint8_t length = 0;
+    uint32_t    expireTick;
+
+    expireTick = TICK_get() + _timeout;
 
     buffer[length++] = (_offset >> 24) & 0xFF;
     buffer[length++] = (_offset >> 16) & 0xFF;
@@ -577,12 +673,31 @@ RET_VALUE   RF_sendRequestData(uint16_t _destAddress, uint32_t _offset, uint32_t
     buffer[length++] = (_count >>  8) & 0xFF;
     buffer[length++] = (_count      ) & 0xFF;
 
-    return  RF_send(_destAddress, RF_CMD_REQ_DATA, buffer, length, RF_OPTIONS_REQ_ACK, _timeout);
+    ret = RF_send(_destAddress, RF_CMD_REQ_DATA, buffer, length, RF_OPTIONS_REQ_ACK, _timeout);
+    if (ret == RET_OK)
+    {
+        if (expireTick <= TICK_get())
+        {
+            ret = RET_TIMEOUT;
+        }
+        else
+        {
+            ret = RF_waitingForAck(expireTick - TICK_get());
+        }
+    }
+
+    return  ret;
+
 }
 
-RET_VALUE   RF_sendAck(uint16_t _destAddress, uint32_t _timeout)
+RET_VALUE   RF_sendACK(uint16_t _destAddress, uint32_t _timeout)
 {
     return  RF_send(_destAddress, RF_CMD_ACK, NULL, 0, RF_OPTIONS_ACK, _timeout);
+}
+
+RET_VALUE   RF_sendNAK(uint16_t _destAddress, uint32_t _timeout)
+{
+    return  RF_send(_destAddress, RF_CMD_NAK, NULL, 0, RF_OPTIONS_ACK, _timeout);
 }
 
 RET_VALUE   RF_recv(uint8_t* buffer, uint32_t bufferSize, uint32_t* receivedLength,  uint16_t* _srcAddress, uint8_t* _port, uint8_t* _options, uint32_t timeout)
@@ -753,4 +868,25 @@ RET_VALUE   RF_clearStatistics(void)
     memset(&statistics_, 0, sizeof(RF_STATISTICS));
 
     return  RET_OK;
+}
+
+RET_VALUE   RF_waitingForAck(uint32_t _timeout)
+{
+    TRACE("Wait for %d ms to wait for an ACK.\n", _timeout);
+
+    uint32_t    expireTick = TICK_get() + _timeout;
+    ackReceived_ = false;
+    while(TICK_get() < expireTick)
+    {
+        if (ackReceived_)
+        {
+            TRACE("Ack received\n");
+            return  RET_OK;
+        }
+
+        osDelay(1);
+    }
+
+    TRACE("The ACK wait time[%d ms] has expired.\n", _timeout);
+    return  RET_TIMEOUT;
 }

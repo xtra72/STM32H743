@@ -35,7 +35,7 @@ RET_VALUE   SCAN_init();
 RET_VALUE   SCAN_setConfig(SCAN_CONFIG* config);
 RET_VALUE   SCAN_getConfig(SCAN_CONFIG* config);
 
-RET_VALUE   SCAN_start();
+RET_VALUE   SCAN_start(bool reset);
 RET_VALUE   SCAN_stop();
 
 bool        SCAN_isRun(void);

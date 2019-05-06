@@ -1,6 +1,8 @@
 #include "target.h"
 #include "config.h"
 #include "shell.h"
+#include "shell_rf.h"
+#include "shell_scan.h"
 
 extern  CONFIG  config_;
 
@@ -18,6 +20,12 @@ RET_VALUE SHELL_config(char *argv[], uint32_t argc, struct _SHELL_COMMAND const*
             SHELL_printf("\n%s\n", "[ Debug ]");
             SHELL_printf("%16s : %s\n", "Trace", TRACE_getEnable()?"ON":"OFF");
 
+            SHELL_printf("\n%s\n", "[ RF ]");
+            SHELL_RF_info();
+#if SUPPORT_DRAM
+            SHELL_printf("\n%s\n", "[ SCAN ]");
+            SHELL_SCAN_info();
+#endif
             ret = RET_OK;
         }
         break;
@@ -30,6 +38,14 @@ RET_VALUE SHELL_config(char *argv[], uint32_t argc, struct _SHELL_COMMAND const*
                 if (config == NULL)
                 {
                     ret = RET_NOT_ENOUGH_MEMORY;
+                    break;
+                }
+
+                ret = RF_getConfig(&config->rf);
+                if (ret != RET_OK)
+                {
+                    vPortFree(config);
+                    SHELL_printf("Can't get RF settings!\n");
                     break;
                 }
 

@@ -43,7 +43,8 @@ typedef enum
     RF_CMD_REQ_DATA_COUNT,
     RF_CMD_REP_DATA_COUNT,
     RF_CMD_REQ_DATA,
-    RF_CMD_REP_DATA
+    RF_CMD_REP_DATA,
+    RF_CMD_NAK
 }   RF_CMD;
 
 #define RF_FRAME_OFFSET_DEST_ADDRESS 0
@@ -78,6 +79,8 @@ RET_VALUE   RF_start(void);
 RET_VALUE   RF_stop(void);
 void        RF_reset(void);
 
+uint32_t    RF_getTimeout(void);
+
 RET_VALUE   RF_setConfirmed(bool confirmed);
 bool        RF_getConfirmed(void);
 
@@ -99,13 +102,17 @@ const char* RF_getStatusString(RF_STATUS _status);
 RET_VALUE   RF_send(uint16_t _destAddress, uint8_t _port, uint8_t* _buffer, uint32_t _size, uint8_t _options, uint32_t _timeout);
 RET_VALUE   RF_recv(uint8_t* _buffer, uint32_t _bufferSize, uint32_t* _receivedLength, uint16_t* _srcAddress, uint8_t* _port, uint8_t* _options, uint32_t _timeout);
 
-RET_VALUE   RF_sendStartScan(uint16_t _destAddress, uint32_t _timeout);
+RET_VALUE   RF_sendStartScan(uint16_t _destAddress, bool _reset, uint32_t _timeout);
 RET_VALUE   RF_sendStopScan(uint16_t _destAddress, uint32_t _timeout);
+
 
 RET_VALUE   RF_sendRequestDataCount(uint16_t _destAddress, uint32_t _timeout);
 RET_VALUE   RF_sendResponseDataCount(uint16_t _destAddress, uint32_t _count, uint32_t _timeout);
 RET_VALUE   RF_recvResponseDataCount(uint16_t* _srcAddress, uint32_t* _count, uint32_t _timeout);
 RET_VALUE   RF_sendRequestData(uint16_t _destAddress, uint32_t _offset, uint32_t _count, uint32_t _timeout);
+
+RET_VALUE   RF_sendACK(uint16_t _destAddress, uint32_t _timeout);
+RET_VALUE   RF_sendNAK(uint16_t _destAddress, uint32_t _timeout);
 
 RET_VALUE   RF_testSend(uint8_t* _buffer, uint32_t _size, uint32_t _interval, uint32_t _count);
 RET_VALUE   RF_testRecv(uint32_t _interval, uint32_t _timeout);

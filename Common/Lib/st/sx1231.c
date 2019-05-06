@@ -36,8 +36,8 @@ static  uint16_t RegistersCfg[] =
 	SX1231_DEF_FIFO, // Left for convenience, not to be changed
 	SX1231_DEF_OPMODE | SX1231_RF_OPMODE_SEQUENCER_ON | SX1231_RF_OPMODE_LISTEN_OFF | SX1231_RF_OPMODE_STANDBY,
 	SX1231_DEF_DATAMODUL | SX1231_RF_DATAMODUL_DATAMODE_PACKET | SX1231_RF_DATAMODUL_MODULATIONTYPE_FSK | SX1231_RF_DATAMODUL_MODULATIONSHAPING_00,
-	SX1231_DEF_BITRATEMSB | SX1231_RF_BITRATEMSB_4800,
-	SX1231_DEF_BITRATELSB | SX1231_RF_BITRATELSB_4800,
+	SX1231_DEF_BITRATEMSB | SX1231_RF_BITRATEMSB_300000,
+	SX1231_DEF_BITRATELSB | SX1231_RF_BITRATELSB_300000,
 	SX1231_DEF_FDEVMSB | SX1231_RF_FDEVMSB_5000,
 	SX1231_DEF_FDEVLSB | SX1231_RF_FDEVLSB_5000,
 	SX1231_DEF_FRFMSB | SX1231_RF_FRFMSB_915,
@@ -314,6 +314,11 @@ RET_VALUE SX1231_receiveFrame(uint8_t *_buffer, uint32_t _bufferSize, uint32_t *
             uint8_t flags1, flags2;
             flags1 = SX1231_internalReadRegister(SX1231_REG_IRQFLAGS1);
             flags2 = SX1231_internalReadRegister(SX1231_REG_IRQFLAGS2);
+
+            if (flags2 & SX1231_RF_IRQFLAGS2_FIFONOTEMPTY)
+            {
+                DEBUG("Fifo not empty\n");
+            }
             if (flags1 || flags2)
             {
     //            DEBUG("Receive timeout : %02x %02x\n", flags1, flags2);

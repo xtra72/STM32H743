@@ -62,19 +62,19 @@ const CONFIG  defaultConfig =
     .sdram =
     {
         .startAddress = 0xD0000000,
-        .size         = 16 * 1024*1024,
+        .size         = 32 * 1024*1024,
         .startHeapAddress = 0xD0000000,
-        .heapSize         = 16 * 1024*1024
+        .heapSize         = 32 * 1024*1024
     },
 #endif
     .scan =
     {
-        .interval = 1,
-        .count = 60 * 1000
+        .interval = 2,
+        .count = 30 * 60 * 500
     },
     .rf =
     {
-        .shortAddress = 0x0000,
+        .shortAddress = 0x0001,
         .enable = true,
         .confirmed = false,
         .bitrate = TARGET_RF_BITRATE,

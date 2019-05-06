@@ -64,7 +64,7 @@ RET_VALUE   SCAN_getConfig(SCAN_CONFIG* config)
     return  RET_OK;
 }
 
-RET_VALUE   SCAN_start()
+RET_VALUE   SCAN_start(bool reset)
 {
     if (data_ == NULL)
     {
@@ -83,8 +83,11 @@ RET_VALUE   SCAN_start()
         return  RET_ERROR;
     }
 
-    TIME2_get(&data_->time);
-    data_->count = 0;
+    if (reset)
+    {
+        TIME2_get(&data_->time);
+        data_->count = 0;
+    }
 
     ADC_CHANNEL_start(0);
     osTimerStart(timerLoopFinishedHandler, loopInterval_);
@@ -100,7 +103,6 @@ RET_VALUE   SCAN_stop()
     if (timerLoopFinishedHandler != 0)
     {
         osTimerStop(timerLoopFinishedHandler);
-        timerLoopFinishedHandler = 0;
     }
    DEBUG("Scan stopped!\n");
 

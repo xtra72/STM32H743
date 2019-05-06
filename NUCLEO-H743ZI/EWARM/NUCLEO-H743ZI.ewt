@@ -1200,6 +1200,9 @@
                 <group>
                     <name>comport</name>
                     <file>
+                        <name>$PROJ_DIR$\..\..\Common\App\com\com_data.c</name>
+                    </file>
+                    <file>
                         <name>$PROJ_DIR$\..\..\Common\App\com\com_rf.c</name>
                     </file>
                     <file>

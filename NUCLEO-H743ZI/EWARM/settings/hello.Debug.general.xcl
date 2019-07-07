@@ -1,0 +1,15 @@
+"C:\Program Files\IAR Systems\Embedded Workbench 8.0\arm\bin\armproc.dll" 
+
+"C:\Program Files\IAR Systems\Embedded Workbench 8.0\arm\bin\armxds2.dll" 
+
+"D:\Projects\STM32H743\NUCLEO-H743ZI\EWARM\Debug\Exe\hello.out" 
+
+--plugin "C:\Program Files\IAR Systems\Embedded Workbench 8.0\arm\bin\armbat.dll" 
+
+--device_macro "C:\Program Files\IAR Systems\Embedded Workbench 8.0\arm\config\debugger\TexasInstruments\CC26x0.dmac" 
+
+--flash_loader "C:\Program Files\IAR Systems\Embedded Workbench 8.0\arm\config\flashloader\TexasInstruments\FlashCC26x0F128RAM20.board" 
+
+
+
+

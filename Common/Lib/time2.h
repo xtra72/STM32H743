@@ -30,6 +30,8 @@ RET_VALUE   TIME2_setAlarm(FI_CLOCK time);
 uint32_t    TIME2_getTimeZone(void);
 
 uint32_t    TICK_get(void);
+uint32_t    TICK_elapsedTime(uint32_t _base);
+uint32_t    TICK_remainTime(uint32_t _base, uint32_t _timeout);
 
 
 #endif

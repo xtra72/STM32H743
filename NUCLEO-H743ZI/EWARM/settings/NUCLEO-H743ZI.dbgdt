@@ -927,7 +927,7 @@
                 <expressions>
                     <item>arguments</item>
                     <item>config</item>
-                    <item></item>
+                    <item />
                 </expressions>
                 <col-names>
                     <item>Expression</item>

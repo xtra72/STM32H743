@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+    <fileVersion>2</fileVersion>
+    <fileChecksum>3779992388</fileChecksum>
+    <configuration>
+        <name>Debug</name>
+        <outputs>
+            <file>$PROJ_DIR$\Debug\Obj\CC1310_LAUNCHXL.o</file>
+            <file>$PROJ_DIR$\CC1310_LAUNCHXL_fxns.c</file>
+            <file>$PROJ_DIR$\hello_CC1310_LAUNCHXL_TIRTOS.icf</file>
+            <file>$PROJ_DIR$\Debug\Obj\CC1310_LAUNCHXL_fxns.o</file>
+            <file>$PROJ_DIR$\hello.cfg</file>
+            <file>$PROJ_DIR$\Debug\Exe\hello.out</file>
+            <file>$PROJ_DIR$\Debug\Obj\hello.pbd</file>
+            <file>$PROJ_DIR$\hello.c</file>
+            <file>$PROJ_DIR$\Debug\Obj\CC1310_LAUNCHXL.pbi</file>
+            <file>$PROJ_DIR$\ccfg.c</file>
+            <file>$PROJ_DIR$\CC1310_LAUNCHXL.c</file>
+            <file>$PROJ_DIR$\Debug\Obj\ccfg.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\hello.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\CC1310_LAUNCHXL_fxns.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\ccfg.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\hello.o</file>
+        </outputs>
+        <file>
+            <name>[ROOT_NODE]</name>
+            <outputs>
+                <tool>
+                    <name>ILINK</name>
+                    <file> 5</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\CC1310_LAUNCHXL_fxns.c</name>
+            <outputs>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 3</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 13</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\hello.c</name>
+            <outputs>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 15</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 12</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\ccfg.c</name>
+            <outputs>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 11</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 14</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\CC1310_LAUNCHXL.c</name>
+            <outputs>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 0</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 8</file>
+                </tool>
+            </outputs>
+        </file>
+        <forcedrebuild>
+            <name>[MULTI_TOOL]</name>
+            <tool>ILINK</tool>
+        </forcedrebuild>
+    </configuration>
+    <configuration>
+        <name>Release</name>
+        <outputs />
+        <forcedrebuild>
+            <name>[MULTI_TOOL]</name>
+            <tool>ILINK</tool>
+        </forcedrebuild>
+    </configuration>
+</project>

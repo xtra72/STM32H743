@@ -59,6 +59,7 @@
 /* External variables --------------------------------------------------------*/
 extern ADC_HandleTypeDef hadc1;
 extern ADC_HandleTypeDef hadc3;
+extern SPI_HandleTypeDef hspi5;
 extern TIM_HandleTypeDef htim1;
 
 /* USER CODE BEGIN EV */
@@ -66,7 +67,7 @@ extern TIM_HandleTypeDef htim1;
 /* USER CODE END EV */
 
 /******************************************************************************/
-/*           Cortex Processor Interruption and Exception Handlers          */
+/*           Cortex Processor Interruption and Exception Handlers          */ 
 /******************************************************************************/
 /**
   * @brief This function handles Non maskable interrupt.
@@ -198,6 +199,20 @@ void TIM1_UP_IRQHandler(void)
   /* USER CODE BEGIN TIM1_UP_IRQn 1 */
 
   /* USER CODE END TIM1_UP_IRQn 1 */
+}
+
+/**
+  * @brief This function handles SPI5 global interrupt.
+  */
+void SPI5_IRQHandler(void)
+{
+  /* USER CODE BEGIN SPI5_IRQn 0 */
+
+  /* USER CODE END SPI5_IRQn 0 */
+  HAL_SPI_IRQHandler(&hspi5);
+  /* USER CODE BEGIN SPI5_IRQn 1 */
+
+  /* USER CODE END SPI5_IRQn 1 */
 }
 
 /**

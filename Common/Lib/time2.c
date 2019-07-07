@@ -265,3 +265,18 @@ uint32_t    TICK_get(void)
     return  (uint32_t)xTaskGetTickCount();
 }
 
+uint32_t    TICK_elapsedTime(uint32_t _base)
+{
+    return  (uint32_t)xTaskGetTickCount() - _base;
+}
+
+uint32_t    TICK_remainTime(uint32_t _base, uint32_t _timeout)
+{
+    uint32_t    elapsedTime = TICK_elapsedTime(_base);
+    if ( elapsedTime < _timeout)
+    {
+        return  _timeout - elapsedTime;
+    }
+
+    return  0;
+}

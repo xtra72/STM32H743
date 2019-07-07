@@ -164,7 +164,7 @@ int main(void)
 
   /* Start scheduler */
   osKernelStart();
-
+  
   /* We should never get here as control is now taken by the scheduler */
 
   /* Infinite loop */
@@ -190,21 +190,21 @@ void SystemClock_Config(void)
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
   RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
 
-  /** Supply configuration update enable
+  /** Supply configuration update enable 
   */
   MODIFY_REG(PWR->CR3, PWR_CR3_SCUEN, 0);
-  /** Configure the main internal regulator output voltage
+  /** Configure the main internal regulator output voltage 
   */
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
-  while ((PWR->D3CR & (PWR_D3CR_VOSRDY)) != PWR_D3CR_VOSRDY)
+  while ((PWR->D3CR & (PWR_D3CR_VOSRDY)) != PWR_D3CR_VOSRDY) 
   {
-
+    
   }
-  /** Macro to configure the PLL clock source
+  /** Macro to configure the PLL clock source 
   */
   __HAL_RCC_PLL_PLLSOURCE_CONFIG(RCC_PLLSOURCE_HSI);
-  /** Initializes the CPU, AHB and APB busses clocks
+  /** Initializes the CPU, AHB and APB busses clocks 
   */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_LSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_DIV1;
@@ -224,7 +224,7 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  /** Initializes the CPU, AHB and APB busses clocks
+  /** Initializes the CPU, AHB and APB busses clocks 
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2
@@ -254,7 +254,7 @@ void SystemClock_Config(void)
   PeriphClkInitStruct.PLL2.PLL2FRACN = 0;
   PeriphClkInitStruct.FmcClockSelection = RCC_FMCCLKSOURCE_D1HCLK;
   PeriphClkInitStruct.SdmmcClockSelection = RCC_SDMMCCLKSOURCE_PLL;
-  PeriphClkInitStruct.Spi45ClockSelection = RCC_SPI45CLKSOURCE_D2PCLK1;
+  PeriphClkInitStruct.Spi45ClockSelection = RCC_SPI45CLKSOURCE_HSI;
   PeriphClkInitStruct.Usart16ClockSelection = RCC_USART16CLKSOURCE_D2PCLK2;
   PeriphClkInitStruct.AdcClockSelection = RCC_ADCCLKSOURCE_PLL2;
   PeriphClkInitStruct.RTCClockSelection = RCC_RTCCLKSOURCE_LSI;
@@ -282,7 +282,7 @@ static void MX_ADC1_Init(void)
   /* USER CODE BEGIN ADC1_Init 1 */
 
   /* USER CODE END ADC1_Init 1 */
-  /** Common config
+  /** Common config 
   */
   hadc1.Instance = ADC1;
   hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV8;
@@ -304,14 +304,14 @@ static void MX_ADC1_Init(void)
   {
     Error_Handler();
   }
-  /** Configure the ADC multi-mode
+  /** Configure the ADC multi-mode 
   */
   multimode.Mode = ADC_MODE_INDEPENDENT;
   if (HAL_ADCEx_MultiModeConfigChannel(&hadc1, &multimode) != HAL_OK)
   {
     Error_Handler();
   }
-  /** Configure Regular Channel
+  /** Configure Regular Channel 
   */
   sConfig.Channel = ADC_CHANNEL_0;
   sConfig.Rank = ADC_REGULAR_RANK_1;
@@ -346,7 +346,7 @@ static void MX_ADC3_Init(void)
   /* USER CODE BEGIN ADC3_Init 1 */
 
   /* USER CODE END ADC3_Init 1 */
-  /** Common config
+  /** Common config 
   */
   hadc3.Instance = ADC3;
   hadc3.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV8;
@@ -368,7 +368,7 @@ static void MX_ADC3_Init(void)
   {
     Error_Handler();
   }
-  /** Configure Regular Channel
+  /** Configure Regular Channel 
   */
   sConfig.Channel = ADC_CHANNEL_0;
   sConfig.Rank = ADC_REGULAR_RANK_1;
@@ -401,7 +401,7 @@ static void MX_RTC_Init(void)
   /* USER CODE BEGIN RTC_Init 1 */
 
   /* USER CODE END RTC_Init 1 */
-  /** Initialize RTC Only
+  /** Initialize RTC Only 
   */
   hrtc.Instance = RTC;
   hrtc.Init.HourFormat = RTC_HOURFORMAT_24;
@@ -470,8 +470,8 @@ static void MX_SPI5_Init(void)
   hspi5.Init.DataSize = SPI_DATASIZE_8BIT;
   hspi5.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi5.Init.CLKPhase = SPI_PHASE_1EDGE;
-  hspi5.Init.NSS = SPI_NSS_SOFT;
-  hspi5.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi5.Init.NSS = SPI_NSS_HARD_OUTPUT;
+  hspi5.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
   hspi5.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi5.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi5.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -596,11 +596,11 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(RF_RESET_GPIO_Port, RF_RESET_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(RF_NSS_GPIO_Port, RF_NSS_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(RF_MASTER_READY_GPIO_Port, RF_MASTER_READY_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : RF_RESET_Pin */
   GPIO_InitStruct.Pin = RF_RESET_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(RF_RESET_GPIO_Port, &GPIO_InitStruct);
@@ -623,30 +623,24 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(RF_DIO0_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : RF_NSS_Pin */
-  GPIO_InitStruct.Pin = RF_NSS_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(RF_NSS_GPIO_Port, &GPIO_InitStruct);
-
   /*Configure GPIO pin : RF_DIO2_Pin */
   GPIO_InitStruct.Pin = RF_DIO2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(RF_DIO2_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : RF_DIO3_Pin */
-  GPIO_InitStruct.Pin = RF_DIO3_Pin;
+  /*Configure GPIO pin : RF_SLAVE_READY_Pin */
+  GPIO_InitStruct.Pin = RF_SLAVE_READY_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(RF_DIO3_GPIO_Port, &GPIO_InitStruct);
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(RF_SLAVE_READY_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : RF_DIO4_Pin */
-  GPIO_InitStruct.Pin = RF_DIO4_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(RF_DIO4_GPIO_Port, &GPIO_InitStruct);
+  /*Configure GPIO pin : RF_MASTER_READY_Pin */
+  GPIO_InitStruct.Pin = RF_MASTER_READY_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  HAL_GPIO_Init(RF_MASTER_READY_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI9_5_IRQn, 5, 0);
@@ -676,7 +670,7 @@ __weak void MAIN_taskEntry(void const * argument)
   {
     osDelay(1);
   }
-  /* USER CODE END 5 */
+  /* USER CODE END 5 */ 
 }
 
 /* SYSTEM_montiorCallback function */
@@ -731,7 +725,7 @@ void Error_Handler(void)
   * @retval None
   */
 void assert_failed(uint8_t *file, uint32_t line)
-{
+{ 
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
      tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */

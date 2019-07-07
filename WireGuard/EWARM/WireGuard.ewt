@@ -1238,6 +1238,9 @@
                     <file>
                         <name>$PROJ_DIR$\..\..\Common\App\shell\shell_sdram.c</name>
                     </file>
+                    <file>
+                        <name>$PROJ_DIR$\..\..\Common\App\shell\shell_spi.c</name>
+                    </file>
                 </group>
                 <file>
                     <name>$PROJ_DIR$\..\..\Common\App\comport.c</name>
@@ -1339,6 +1342,9 @@
                     <name>$PROJ_DIR$\..\..\Common\Lib\crc16.h</name>
                 </file>
                 <file>
+                    <name>$PROJ_DIR$\..\..\Common\Lib\gpio.c</name>
+                </file>
+                <file>
                     <name>$PROJ_DIR$\..\..\Common\Lib\monitor.c</name>
                 </file>
                 <file>
@@ -1364,6 +1370,9 @@
                 </file>
                 <file>
                     <name>$PROJ_DIR$\..\..\Common\Lib\serial.h</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\Common\Lib\spi.c</name>
                 </file>
                 <file>
                     <name>$PROJ_DIR$\..\..\Common\Lib\system.c</name>

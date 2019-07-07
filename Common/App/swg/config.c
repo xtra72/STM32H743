@@ -75,9 +75,6 @@ const CONFIG  defaultConfig =
     .rf =
     {
         .shortAddress = 0x0001,
-        .enable = true,
-        .confirmed = false,
-        .bitrate = TARGET_RF_BITRATE,
         .maxPayloadLength = 60,
         .timeout = TARGET_RF_TIMEOUT
     },

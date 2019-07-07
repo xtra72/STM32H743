@@ -41,7 +41,7 @@ RET_VALUE SHELL_config(char *argv[], uint32_t argc, struct _SHELL_COMMAND const*
                     break;
                 }
 
-                ret = RF_getConfig(&config->rf);
+                ret = RF_getConfig(&config->rf, 5000);
                 if (ret != RET_OK)
                 {
                     vPortFree(config);

@@ -391,15 +391,16 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
     __HAL_RCC_GPIOJ_CLK_ENABLE();
     /**SPI5 GPIO Configuration    
     PK0     ------> SPI5_SCK
+    PK1     ------> SPI5_NSS
     PJ11     ------> SPI5_MISO
     PJ10     ------> SPI5_MOSI 
     */
-    GPIO_InitStruct.Pin = RF_SCK_Pin;
+    GPIO_InitStruct.Pin = RF_SCK_Pin|GPIO_PIN_1;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Alternate = GPIO_AF5_SPI5;
-    HAL_GPIO_Init(RF_SCK_GPIO_Port, &GPIO_InitStruct);
+    HAL_GPIO_Init(GPIOK, &GPIO_InitStruct);
 
     GPIO_InitStruct.Pin = RF_MISO_Pin|RF_MOSI_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -408,6 +409,9 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
     GPIO_InitStruct.Alternate = GPIO_AF5_SPI5;
     HAL_GPIO_Init(GPIOJ, &GPIO_InitStruct);
 
+    /* SPI5 interrupt Init */
+    HAL_NVIC_SetPriority(SPI5_IRQn, 5, 0);
+    HAL_NVIC_EnableIRQ(SPI5_IRQn);
   /* USER CODE BEGIN SPI5_MspInit 1 */
 
   /* USER CODE END SPI5_MspInit 1 */
@@ -433,13 +437,16 @@ void HAL_SPI_MspDeInit(SPI_HandleTypeDef* hspi)
   
     /**SPI5 GPIO Configuration    
     PK0     ------> SPI5_SCK
+    PK1     ------> SPI5_NSS
     PJ11     ------> SPI5_MISO
     PJ10     ------> SPI5_MOSI 
     */
-    HAL_GPIO_DeInit(RF_SCK_GPIO_Port, RF_SCK_Pin);
+    HAL_GPIO_DeInit(GPIOK, RF_SCK_Pin|GPIO_PIN_1);
 
     HAL_GPIO_DeInit(GPIOJ, RF_MISO_Pin|RF_MOSI_Pin);
 
+    /* SPI5 interrupt DeInit */
+    HAL_NVIC_DisableIRQ(SPI5_IRQn);
   /* USER CODE BEGIN SPI5_MspDeInit 1 */
 
   /* USER CODE END SPI5_MspDeInit 1 */

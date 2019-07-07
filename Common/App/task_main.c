@@ -11,6 +11,7 @@ RET_VALUE   SHELL_monitor(char *argv[], uint32_t argc, struct _SHELL_COMMAND  co
 RET_VALUE   SHELL_adc(char *argv[], uint32_t argc, struct _SHELL_COMMAND  const* command);
 RET_VALUE   SHELL_sdram(char *argv[], uint32_t argc, struct _SHELL_COMMAND  const* command);
 RET_VALUE   SHELL_config(char *argv[], uint32_t argc, struct _SHELL_COMMAND  const* command);
+RET_VALUE   SHELL_spi(char *argv[], uint32_t argc, struct _SHELL_COMMAND  const* command);
 
 RET_VALUE   COM_scan(char *argv[], uint32_t argc, struct _COM_COMMAND  const* command);
 RET_VALUE   COM_DATA(char *argv[], uint32_t argc, struct _COM_COMMAND  const* command);
@@ -40,6 +41,11 @@ static const SHELL_COMMAND   shellCommands[] =
         .name       = "rf",
         .function   = SHELL_RF,
         .shortHelp  = "RF"
+    },
+    {
+        .name       = "spi",
+        .function   = SHELL_spi,
+        .shortHelp  = "SPI"
     },
 #if SUPPORT_DRAM
     {
@@ -97,21 +103,13 @@ void MAIN_taskEntry(void const * argument)
     SDRAM_setConfig(&config_.sdram);
     SCAN_setConfig(&config_.scan);
 #endif
-    RF_setConfig(&config_.rf);
 
     SHELL_start();
 #if SUPPORT_COM
     COM_start();
 #endif
-    if (config_.adc.enable)
-    {
-        ADC_start();
-    }
-
-    if (config_.rf.enable)
-    {
-        RF_start();
-    }
+    ADC_start();
+    RF_start();
 
     for(;;)
     {

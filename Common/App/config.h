@@ -16,10 +16,10 @@
 #define CONFIG_PASSWORD_LEN TARGET_PASSWORD_LEN
 #endif
 
-#ifndef TARGET_SERIAL_NUMBER_LEN
-#define CONFIG_SERIAL_NUMBER_LEN 32
+#ifndef TARGET_DEVICE_ID_LEN
+#define CONFIG_DEVICE_ID_LEN    32
 #else
-#define CONFIG_SERIAL_NUMBER_LEN TARGET_SERIAL_NUMBER_LEN
+#define CONFIG_DEVICE_ID_LEN TARGET_DEVICE_ID_LEN
 #endif
 
 #ifndef TARGET_PRODUCT_NAME
@@ -41,8 +41,8 @@ typedef struct
     uint32_t        crc;
     uint32_t        sequence;
 
-    char            password[CONFIG_PASSWORD_LEN];
-    char            serialNumber[CONFIG_SERIAL_NUMBER_LEN];
+    char            password[CONFIG_PASSWORD_LEN + 1];
+    char             deviceId[CONFIG_DEVICE_ID_LEN + 1];
 
     ADC_CONFIG      adc;
 #if SUPPORT_DRAM
@@ -66,10 +66,8 @@ RET_VALUE   CONFIG_save(CONFIG* config);
 bool        CONFIG_isValid(CONFIG* config);
 RET_VALUE   CONFIG_clear(void);
 
-
 const ADC_DESCRIPTION*    CONFIG_getADCDescription(uint32_t id);
 
 extern  const   char firmwareVersion[];
 
-extern  CONFIG  config;
 #endif

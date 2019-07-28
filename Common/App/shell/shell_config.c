@@ -10,88 +10,47 @@ RET_VALUE SHELL_config(char *argv[], uint32_t argc, struct _SHELL_COMMAND const*
 {
     RET_VALUE   ret = RET_INVALID_ARGUMENT;
 
-    switch(argc)
+    if (argc == 1)
     {
-    case    1:
-        {
-            SHELL_printf("\n%s\n", "[ System ]");
-            SHELL_printf("%16s : %s\n", "S/N", config_.serialNumber);
+        SHELL_printf("\n%s\n", "[ System ]");
+        SHELL_printf("%16s : %s\n", "Device ID", config_.deviceId);
 
-            SHELL_printf("\n%s\n", "[ Debug ]");
-            SHELL_printf("%16s : %s\n", "Trace", TRACE_getEnable()?"ON":"OFF");
+        SHELL_printf("\n%s\n", "[ Debug ]");
+        SHELL_printf("%16s : %s\n", "Trace", TRACE_getEnable()?"ON":"OFF");
 
-            SHELL_printf("\n%s\n", "[ RF ]");
-            SHELL_RF_info();
+        SHELL_printf("%16s : %s\n", "Status", RF_getStatusString(RF_getStatus()));
+        SHELL_printf("%16s : %d ms\n", "Keep Alive", RF_getKeepAlive());
+        SHELL_printf("%16s : %d ms\n", "Transfer Cycle", RF_getTransferInterval());
+        SHELL_printf("%16s : %d\n", "NOP", RF_getTransferNOP());
+
+        SHELL_RF_info();
 #if SUPPORT_DRAM
-            SHELL_printf("\n%s\n", "[ SCAN ]");
-            SHELL_SCAN_info();
+        SHELL_printf("\n%s\n", "[ SCAN ]");
+        SHELL_SCAN_info();
 #endif
-            ret = RET_OK;
-        }
-        break;
-
-    case    2:
-        {
-            if (strcasecmp(argv[1], "save") == 0)
-            {
-                CONFIG* config = pvPortMalloc(sizeof(CONFIG));
-                if (config == NULL)
-                {
-                    ret = RET_NOT_ENOUGH_MEMORY;
-                    break;
-                }
-
-                ret = RF_getConfig(&config->rf, 5000);
-                if (ret != RET_OK)
-                {
-                    vPortFree(config);
-                    SHELL_printf("Can't get RF settings!\n");
-                    break;
-                }
-
-                ret = SHELL_getConfig(&config->shell);
-                if (ret != RET_OK)
-                {
-                    vPortFree(config);
-                    SHELL_printf("Can't get shell settings!\n");
-                    break;
-                }
-
-                ret = TRACE_getConfig(&config->trace);
-                if (ret != RET_OK)
-                {
-                    vPortFree(config);
-                    SHELL_printf("Can't get TRACE settings!\n");
-                    break;
-                }
-
-                ret = CONFIG_save(config);
-                if (ret != RET_OK)
-                {
-                    vPortFree(config);
-                    SHELL_printf("Failed to save settings!\n");
-                    break;
-                }
-
-                memcpy(&config_, config, sizeof(CONFIG));
-                vPortFree(config);
-            }
-            else if (strcasecmp(argv[1], "load") == 0)
-            {
-                ret = CONFIG_load(&config_);
-            }
-            else if (strcasecmp(argv[1], "clean") == 0)
-            {
-                ret = CONFIG_clear();
-            }
-        }
-        break;
-
-
-    default:
-        ret = RET_INVALID_ARGUMENT;
+        return  RET_OK;
     }
 
+    if (strcasecmp(argv[1], "save") == 0)
+    {
+        ret = CONFIG_save(&config_);
+        if (ret != RET_OK)
+        {
+            SHELL_printf("Failed to save settings!\n");
+        }
+    }
+    else if (strcasecmp(argv[1], "load") == 0)
+    {
+        ret = CONFIG_load(&config_);
+    }
+    else if (strcasecmp(argv[1], "clean") == 0)
+    {
+        ret = CONFIG_clear();
+    }
+    else if (strcasecmp(argv[1],  "rf") == 0)
+    {
+        ret = SHELL_RF_config(&argv[1], argc - 1, command);
+    }
 
     return  ret;
 }

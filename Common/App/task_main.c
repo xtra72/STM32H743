@@ -16,9 +16,8 @@ RET_VALUE   SHELL_spi(char *argv[], uint32_t argc, struct _SHELL_COMMAND  const*
 RET_VALUE   COM_scan(char *argv[], uint32_t argc, struct _COM_COMMAND  const* command);
 RET_VALUE   COM_DATA(char *argv[], uint32_t argc, struct _COM_COMMAND  const* command);
 
-CONFIG  config_;
 extern  uint32_t    ST_count;
-
+CONFIG  config_;
 
 static const SHELL_COMMAND   shellCommands[] =
 {
@@ -93,18 +92,18 @@ void MAIN_taskEntry(void const * argument)
     SCAN_init();
 #endif
 
-    TRACE_setConfig(&config_.trace);
-    SHELL_setConfig(&config_.shell);
+    //TRACE_setConfig(&config_.trace);
+    //SHELL_setConfig(&config_.shell);
 #if SUPPORT_COM
-    COM_setConfig(&config_.comport);
+    //\COM_setConfig(&config_.comport);
 #endif
-    ADC_config(&config_.adc);
+    //ADC_config(&config_.adc);
 #if SUPPORT_DRAM
-    SDRAM_setConfig(&config_.sdram);
-    SCAN_setConfig(&config_.scan);
+//    SCAN_setConfig(&config_.scan);
 #endif
 
     SHELL_start();
+    SDRAM_start();
 #if SUPPORT_COM
     COM_start();
 #endif

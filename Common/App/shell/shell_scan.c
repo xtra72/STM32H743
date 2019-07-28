@@ -125,17 +125,33 @@ RET_VALUE SHELL_SCAN_info(void)
 
 RET_VALUE SHELL_SCAN_start(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
 {
-    uint32_t    dataReset = 0;
+    bool    reset = false;
+    bool    trace = false;
 
-    if ( argc > 1)
+    for(uint32_t i = 1 ; i < argc ; i++)
     {
-        if (!strToUint32(argv[1], &dataReset))
+        if (strcasecmp(argv[i], "reset") == 0)
+        {
+            reset = true;
+        }
+        else if (strcasecmp(argv[i], "trace") == 0)
+        {
+            trace = true;
+        }
+        else
         {
             return  RET_INVALID_ARGUMENT;
         }
     }
 
-    if (SCAN_start(dataReset) != RET_OK)
+    if (reset)
+    {
+        SCAN_DATA_reset();
+    }
+
+    SCAN_setTrace(trace);
+
+    if (SCAN_start() != RET_OK)
     {
         SHELL_printf("Scan start failed.\n");
     }
@@ -255,7 +271,8 @@ RET_VALUE SHELL_SCAN_data(char *argv[], uint32_t argc, struct _SHELL_COMMAND con
                 SCAN_LOOP_DATA*   data = SCAN_getLoopData(index + j);
                 for(int i=  0 ; i < ADC_CHANNEL_getCount() ; i++)
                 {
-                    SHELL_printf("%4.2f ", data->data[i] * 3.3 / 65535);
+                    SHELL_printf("%5d ", data->data[i]);
+      //              SHELL_printf("%4.2f ", data->data[i] * 3.3 / 65535);
                 }
                 SHELL_printf("\n");
             }

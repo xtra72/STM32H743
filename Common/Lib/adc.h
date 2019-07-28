@@ -51,7 +51,8 @@ RET_VALUE   ADC_start(void);
 RET_VALUE   ADC_stop(void);
 
 uint32_t    ADC_CHANNEL_getCount(void);
-RET_VALUE   ADC_CHANNEL_start(uint32_t channelId);
+RET_VALUE   ADC_CHANNEL_start(void);
+RET_VALUE   ADC_CHANNEL_run(uint32_t channelId);
 RET_VALUE   ADC_CHANNEL_next(void);
 
 uint32_t    ADC_CHANNEL_getValueCount(uint32_t channelId);

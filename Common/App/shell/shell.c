@@ -43,7 +43,7 @@ RET_VALUE SHELL_COMMAND_help(char *argv[], uint32_t argc, struct _SHELL_COMMAND 
 //static const char * const inputPassword_ = "Input Password : ";
 static  const char * const prompt_ = "%s> ";
 static  const char * const newLine_ = "\r\n";
-static  SHELL_CONFIG    config_;
+extern  CONFIG    config_;
 
 static const SHELL_COMMAND   defaultCommands_[] =
 {
@@ -58,9 +58,9 @@ static const SHELL_COMMAND   defaultCommands_[] =
         .shortHelp  = "Help"
     },
     {
-        .name       = "sn",
-        .function   = SHELL_COMMAND_serialNumber,
-        .shortHelp  = "S/N"
+        .name       = "deviceid",
+        .function   = SHELL_COMMAND_deviceId,
+        .shortHelp  = "Device ID"
     },
     {
         .name       = "sleep",
@@ -107,28 +107,6 @@ RET_VALUE   SHELL_addCommands(const SHELL_COMMAND   *commands, uint32_t count)
     return  RET_OK;
 }
 
-RET_VALUE   SHELL_setConfig(SHELL_CONFIG* config)
-{
-    ASSERT(config != NULL);
-
-    RET_VALUE   ret = RET_OK;
-
-    memcpy(&config_, config, sizeof(SHELL_CONFIG));
-
-    return  ret;
-}
-
-/*-----------------------------------------------------------*/
-RET_VALUE   SHELL_getConfig(SHELL_CONFIG* config)
-{
-    ASSERT(config != NULL);
-
-    RET_VALUE   ret = RET_OK;
-
-    memcpy(config, &config_, sizeof(SHELL_CONFIG));
-
-    return  ret;
-}
 /*-----------------------------------------------------------*/
 RET_VALUE   SHELL_start(void)
 {
@@ -137,7 +115,7 @@ RET_VALUE   SHELL_start(void)
     if (threadId_ == NULL)
     {
         osThreadDef(shellTask, SHELL_main, SHELL_PRIORITY, 0, SHELL_STACK_SIZE);
-        threadId_ = osThreadCreate(osThread(shellTask), &config_);
+        threadId_ = osThreadCreate(osThread(shellTask), &config_.shell);
         if (threadId_ == NULL)
         {
             ret = RET_ERROR;

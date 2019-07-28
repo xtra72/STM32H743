@@ -56,21 +56,18 @@ static const SHELL_COMMAND   commandSet_[] =
     }
 };
 
+extern  CONFIG  config_;
 RET_VALUE   SHELL_sdram(char *argv[], uint32_t argc, struct _SHELL_COMMAND  const* command)
 {
     RET_VALUE   ret = RET_INVALID_COMMAND;
     if (argc == 1)
     {
-        SDRAM_CONFIG    config;
-
-        SDRAM_getConfig(&config);
-
         SHELL_printf("[ %16s ]\n", "Total");
-        SHELL_printf("%16s : %08x\n", "Start Address", config.startAddress);
-        SHELL_printf("%16s : %08x\n", "Size", config.size);
+        SHELL_printf("%16s : %08x\n", "Start Address", config_.sdram.startAddress);
+        SHELL_printf("%16s : %08x\n", "Size", config_.sdram.size);
         SHELL_printf("[ %16s ]\n", "Heap");
-        SHELL_printf("%16s : %08x\n", "Start Address", config.startHeapAddress);
-        SHELL_printf("%16s : %08x\n", "Total Size", config.heapSize);
+        SHELL_printf("%16s : %08x\n", "Start Address", config_.sdram.startHeapAddress);
+        SHELL_printf("%16s : %08x\n", "Total Size", config_.sdram.heapSize);
         SHELL_printf("%16s : %08x\n", "Free Size", SDRAM_getFreeHeapSize( ));
 
     }

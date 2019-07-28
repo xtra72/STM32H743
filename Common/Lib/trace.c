@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include "FreeRTOS.h"
 #include "target.h"
+#include "config.h"
 #include "shell.h"
 #include "time2.h"
 
@@ -17,45 +18,26 @@ const char* _titleName[] =
     "FTL"
 };
 
-static  TRACE_CONFIG    config_;
+extern  CONFIG    config_;
 static char     buffer_[256];
 
 void    TRACE_init(void)
 {
 }
 
-RET_VALUE   TRACE_setConfig(TRACE_CONFIG* config)
-{
-    if (config != NULL)
-    {
-        memcpy(&config_, config, sizeof(TRACE_CONFIG));
-    }
-
-    return  RET_OK;
-}
-
-RET_VALUE   TRACE_getConfig(TRACE_CONFIG* config)
-{
-    ASSERT(config != NULL);
-
-    memcpy(config, &config_, sizeof(TRACE_CONFIG));
-
-    return  RET_OK;
-}
-
 void        TRACE_setEnable(bool enable)
 {
-    config_.enable = enable;
+    config_.trace.enable = enable;
 }
 
 bool    TRACE_getEnable(void)
 {
-    return  config_.enable;
+    return  config_.trace.enable;
 }
 
 void    TRACE_print(char *string)
 {
-    if (config_.enable)
+    if (config_.trace.enable)
     {
         SHELL_print(string);
     }
@@ -63,7 +45,7 @@ void    TRACE_print(char *string)
 
 void    TRACE_printUINT8(uint8_t value)
 {
-    if (config_.enable)
+    if (config_.trace.enable)
     {
         char    pBuff[16];
 
@@ -82,7 +64,7 @@ void    TRACE_printDump
     uint32_t        _columnLength
 )
 {
-    if (config_.enable)
+    if (config_.trace.enable)
     {
         static  char    header[64];
         uint32_t        headerLength = 0;
@@ -123,7 +105,7 @@ RET_VALUE    TRACE_printf
 )
 {
     static  char    header[64];
-    if (config_.enable)
+    if (config_.trace.enable)
     {
         va_list  ap;
         uint32_t headerLength = 0;

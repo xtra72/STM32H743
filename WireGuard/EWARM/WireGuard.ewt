@@ -1215,9 +1215,6 @@
                         <name>$PROJ_DIR$\..\..\Common\App\shell\shell.h</name>
                     </file>
                     <file>
-                        <name>$PROJ_DIR$\..\..\Common\App\shell\shell_1231.c</name>
-                    </file>
-                    <file>
                         <name>$PROJ_DIR$\..\..\Common\App\shell\shell_adc.c</name>
                     </file>
                     <file>
@@ -1240,6 +1237,9 @@
                     </file>
                     <file>
                         <name>$PROJ_DIR$\..\..\Common\App\shell\shell_spi.c</name>
+                    </file>
+                    <file>
+                        <name>$PROJ_DIR$\..\..\Common\App\shell\shell_trans.c</name>
                     </file>
                 </group>
                 <file>
@@ -1314,12 +1314,6 @@
             </group>
             <group>
                 <name>Lib</name>
-                <group>
-                    <name>st</name>
-                    <file>
-                        <name>$PROJ_DIR$\..\..\Common\Lib\st\sx1231.c</name>
-                    </file>
-                </group>
                 <group>
                     <name>sys</name>
                     <file>

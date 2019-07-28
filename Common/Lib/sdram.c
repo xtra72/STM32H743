@@ -1,4 +1,5 @@
 #include "target.h"
+#include "config.h"
 #include "sdram.h"
 
 #if SUPPORT_DRAM
@@ -18,12 +19,9 @@
 #define SDRAM_MODEREG_WRITEBURST_MODE_PROGRAMMED ((uint16_t)0x0000)
 #define SDRAM_MODEREG_WRITEBURST_MODE_SINGLE     ((uint16_t)0x0200)
 
-void SDRAM_heapInit( void* heapStart, uint32_t heapSize);
+extern  CONFIG  config_;
 
-uint32_t            startAddress_ = 0;
-uint32_t            size_ = 0;
-uint32_t            startHeapAddress_ = 0;
-uint32_t            heapSize_ = 0;
+void SDRAM_heapInit( void* heapStart, uint32_t heapSize);
 
 RET_VALUE  SDRAM_init(SDRAM_HandleTypeDef *hsdram)
 {
@@ -85,35 +83,16 @@ RET_VALUE  SDRAM_init(SDRAM_HandleTypeDef *hsdram)
     return  RET_OK;
 }
 
-RET_VALUE   SDRAM_setConfig(SDRAM_CONFIG* config)
+RET_VALUE   SDRAM_start(void)
 {
-    ASSERT(config);
-
-    startAddress_  = config->startAddress;
-    size_ = config->size;
-    startHeapAddress_  = config->startHeapAddress;
-    heapSize_ = config->heapSize;
-
-    SDRAM_heapInit( (void*)startHeapAddress_, heapSize_);
-
-    return  RET_OK;
-}
-
-RET_VALUE   SDRAM_getConfig(SDRAM_CONFIG* config)
-{
-    ASSERT(config);
-
-    config->startAddress = startAddress_ ;
-    config->size = size_;
-    config->startHeapAddress = startHeapAddress_;
-    config->heapSize = heapSize_;
+    SDRAM_heapInit( (void*)config_.sdram.startHeapAddress, config_.sdram.heapSize);
 
     return  RET_OK;
 }
 
 RET_VALUE   SDRAM_fill(uint32_t address, uint32_t value, uint32_t size)
 {
-    if ((address < startAddress_) || ((startAddress_ + size_) < (address + size)))
+    if ((address < config_.sdram.startAddress) || ((config_.sdram.startAddress + config_.sdram.size) < (address + size)))
     {
         return  RET_OUT_OF_RANGE;
     }

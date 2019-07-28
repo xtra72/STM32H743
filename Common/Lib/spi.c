@@ -54,21 +54,45 @@ RET_VALUE   SPI_transmitReceive(uint8_t* _txBuffer, uint8_t* _rxBuffer, uint32_t
 {
     ASSERT(spi_ != NULL);
 
+    HAL_StatusTypeDef   status;
     RET_VALUE   ret = RET_ERROR;
     uint32_t    startTime = TICK_get();
-    _timeout = TICK_remainTime(startTime, _timeout);
 
-    if (HAL_SPI_TransmitReceive_IT(spi_, _txBuffer, _rxBuffer, _size) == HAL_OK)
+    while((0 < TICK_remainTime(startTime, _timeout)) && (ret != RET_OK))
     {
-        if (xSemaphoreTake( ioSemaphore_, _timeout)  == pdTRUE)
+        status = HAL_SPI_TransmitReceive_IT(spi_, _txBuffer, _rxBuffer, _size);
+        switch(status)
         {
-            ret = RET_OK;
+        case    HAL_BUSY:
+            {
+                osDelay(10);
+            }
+            break;
+
+        case    HAL_OK:
+            {
+     #if 1
+                osDelay(5);
+                ret = RET_OK;
+    #else
+                if (xSemaphoreTake( ioSemaphore_, _timeout)  == pdTRUE)
+                {
+                    ret = RET_OK;
+                }
+    #endif
+            }
+            break;
+
+        default:
+            break;
         }
     }
 
     if (ret != RET_OK)
     {
-        DEBUG("SPI Transmit failed : %d, %d, %d\n", startTime, TICK_get(), _timeout);
+        DEBUG("SPI Transmit failed : %d, %d, %d, %d\n", startTime, TICK_get(), _timeout, status);
+        HAL_SPI_Abort_IT(spi_);
+
     }
 
     return  ret;

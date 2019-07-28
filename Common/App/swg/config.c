@@ -40,11 +40,11 @@ const CONFIG  defaultConfig =
 {
     .crc        =   0,
     .sequence   =   0,
-    .serialNumber=  "FCN-10S-00000000",
+    .deviceId   =  "01234567",
     .adc =
     {
         .enable = true,
-        .channelCount = 8,
+        .channelCount = TARGET_ADC_CHANNEL_COUNT_MAX,
         .channels =
         {
             { 1, ADC_CHANNEL_3},
@@ -56,27 +56,37 @@ const CONFIG  defaultConfig =
             { 0, ADC_CHANNEL_3},
             { 0, ADC_CHANNEL_5},
         },
-        .dataCount = 1000
+        .dataCount = TARGET_ADC_DATA_COUNT_MAX
     },
 #if SUPPORT_DRAM
     .sdram =
     {
-        .startAddress = 0xD0000000,
-        .size         = 32 * 1024*1024,
-        .startHeapAddress = 0xD0000000,
-        .heapSize         = 32 * 1024*1024
+        .startAddress = TARGET_SDRAM_START_ADDRESS,
+        .size = TARGET_SDRAM_SIZE,
+        .startHeapAddress = TARGET_SDRAM_START_HEAP_ADRESS,
+        .heapSize = TARGET_SDRAM_HEAP_SIZE
     },
 #endif
     .scan =
     {
-        .interval = 2,
-        .count = 30 * 60 * 500
+        .interval = TARGET_SCAN_INTERVAL,
+        .count = TARGET_SCAN_COUNT
     },
     .rf =
     {
-        .shortAddress = 0x0001,
-        .maxPayloadLength = 60,
-        .timeout = TARGET_RF_TIMEOUT
+        .cc1310 =
+        {
+            .shortAddress = TARGET_RF_SHORT_ADDRESS,
+            .frequency = TERGET_RF_FREQUENCY,
+            .power = TARGET_RF_POWER,
+            .maxPayloadLength = TARGET_RF_PAYLOAD_MAX,
+            .timeout = TARGET_RF_TIMEOUT
+        },
+        .keepAlive        = TARGET_RF_KEEP_ALIVE,
+        .transferInterval = TARGET_RF_TRANSFER_INTERVAL,
+        .nop              = TARGET_RF_TRANSFER_NOP
+
+
     },
     .shell =
     {

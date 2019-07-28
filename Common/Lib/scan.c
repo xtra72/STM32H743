@@ -10,11 +10,12 @@
 RET_VALUE   SCAN_startLoop(void);
 void SCAN_loopFinishedCallback(void const * argument);
 
-static  osTimerId timerLoopFinishedHandler = 0;
+extern  CONFIG      config_;
+        uint64_t    timerLoopStartTime = 0;
+static  osTimerId   timerLoopFinishedHandler = 0;
 
+static  bool        trace_ = false;
 static  bool        loopRun_ = false;
-static  uint32_t    loopInterval_ = 1;
-static  uint32_t    loopCountMax_ = 1000 * 60;
 static  SCAN_DATA*  data_ =  NULL;
 
 RET_VALUE   SCAN_init(void)
@@ -25,50 +26,24 @@ RET_VALUE   SCAN_init(void)
   return    RET_OK;
 }
 
-RET_VALUE   SCAN_setConfig(SCAN_CONFIG* config)
+
+bool        SCAN_setTrace(bool trace)
 {
-    ASSERT(config);
-
-    if ((data_ != NULL) || (loopCountMax_ != config->count))
-    {
-        SDRAM_free(data_);
-        data_ = NULL;
-    }
-
-    loopInterval_ = config->interval;
-    loopCountMax_ = config->count;
-
-    if (data_ == NULL)
-    {
-        uint32_t    memorySize = sizeof(SCAN_DATA) + sizeof(SCAN_LOOP_DATA) * loopCountMax_;
-
-        data_ = SDRAM_malloc(memorySize);
-        if (data_ == NULL)
-        {
-            return  RET_NOT_ENOUGH_MEMORY;
-        }
-
-        memset(data_, 0, memorySize);
-    }
-
-    return  RET_OK;
+    trace_ = trace;
+    return  true;
 }
 
-RET_VALUE   SCAN_getConfig(SCAN_CONFIG* config)
+bool        SCAN_getTrace(void)
 {
-    ASSERT(config);
-
-    config->interval = loopInterval_;
-    config->count = loopCountMax_;
-
-    return  RET_OK;
+    return  trace_;
 }
 
-RET_VALUE   SCAN_start(bool reset)
+
+RET_VALUE   SCAN_start(void)
 {
     if (data_ == NULL)
     {
-        uint32_t    memorySize = sizeof(SCAN_DATA) + sizeof(SCAN_LOOP_DATA) * loopCountMax_;
+        uint32_t    memorySize = sizeof(SCAN_DATA) + sizeof(SCAN_LOOP_DATA) * config_.scan.count;
 
         data_ = SDRAM_malloc(memorySize);
         if (data_ == NULL)
@@ -83,14 +58,19 @@ RET_VALUE   SCAN_start(bool reset)
         return  RET_ERROR;
     }
 
-    if (reset)
+    ADC_CHANNEL_start();
+    TIME2   start_time;
+    TIME2_get(&start_time);
+    timerLoopStartTime = start_time * 1000;
+    if ((trace_) && (config_.scan.interval < 100))
     {
-        TIME2_get(&data_->time);
-        data_->count = 0;
+        osTimerStart(timerLoopFinishedHandler, 100);
+    }
+    else
+    {
+        osTimerStart(timerLoopFinishedHandler, config_.scan.interval);
     }
 
-    ADC_CHANNEL_start(0);
-    osTimerStart(timerLoopFinishedHandler, loopInterval_);
     loopRun_ = true;
 
     DEBUG("Scan started!\n");
@@ -116,12 +96,12 @@ bool    SCAN_isRun(void)
 
 uint32_t    SCAN_getInterval(void)
 {
-    return  loopInterval_;
+    return  config_.scan.interval;
 }
 
 bool        SCAN_setInterval(uint32_t interval)
 {
-    loopInterval_ = interval;
+    config_.scan.interval = interval;
 
     return  true;
 }
@@ -133,15 +113,24 @@ uint32_t    SCAN_getCurrentLoop(void)
 
 uint32_t    SCAN_getMaxLoop(void)
 {
-    return  loopCountMax_;
+    return  config_.scan.count;
 }
 
 bool    SCAN_setMaxLoop(uint32_t count)
 {
-    loopCountMax_ = count;
+    config_.scan.count = count;
 
     return  true;
 }
+
+bool    SCAN_DATA_reset(void)
+{
+    TIME2_get(&data_->time);
+    data_->count = 0;
+
+    return  true;
+}
+
 
 SCAN_DATA*   SCAN_getData(void)
 {
@@ -160,10 +149,18 @@ SCAN_LOOP_DATA*   SCAN_getLoopData(uint32_t index)
 
 void    SCAN_loopFinishedCallback(void const * argument)
 {
-    TIME2_get(&data_->loop[data_->count].time);
+    timerLoopStartTime += config_.scan.interval;
+    data_->loop[data_->count].time = (uint32_t)(timerLoopStartTime / 1000);
+//    TIME2_get(&data_->loop[data_->count].time);
+    if (trace_)
+    {
+        SHELL_printf(" %4d", data_->count);
+    }
     for(int i = 0 ; i < ADC_CHANNEL_getCount() ; i++)
     {
-        ADC_CHANNEL_getLastValue(i, &data_->loop[data_->count].data[i]);
+        uint16_t    value;
+        ADC_CHANNEL_getLastValue(i, &value);
+        data_->loop[data_->count].data[i] = value;
         if (data_->count == 0)
         {
             data_->statistics[i].min = data_->loop[data_->count].data[i];
@@ -184,11 +181,20 @@ void    SCAN_loopFinishedCallback(void const * argument)
 
             data_->statistics[i].total += data_->loop[data_->count].data[i];
         }
+        if (trace_)
+        {
+            SHELL_printf(" %5d", value);
+        }
+    }
+    if (trace_)
+    {
+        SHELL_printf("\n");
     }
 
-    if (++data_->count < loopCountMax_)
+
+    if (++data_->count < config_.scan.count)
     {
-        ADC_CHANNEL_start(0);
+        ADC_CHANNEL_start();
     }
     else
     {

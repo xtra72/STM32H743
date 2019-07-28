@@ -32,20 +32,22 @@ typedef struct
 
 RET_VALUE   SCAN_init();
 
-RET_VALUE   SCAN_setConfig(SCAN_CONFIG* config);
-RET_VALUE   SCAN_getConfig(SCAN_CONFIG* config);
-
-RET_VALUE   SCAN_start(bool reset);
-RET_VALUE   SCAN_stop();
+RET_VALUE   SCAN_start(void);
+RET_VALUE   SCAN_stop(void);
 
 bool        SCAN_isRun(void);
 
 uint32_t    SCAN_getInterval(void);
 bool        SCAN_setInterval(uint32_t interval);
 
+bool        SCAN_setTrace(bool trace);
+bool        SCAN_getTrace(void);
+
 uint32_t    SCAN_getCurrentLoop(void);
 uint32_t    SCAN_getMaxLoop(void);
 bool        SCAN_setMaxLoop(uint32_t count);
+
+bool            SCAN_DATA_reset(void);
 
 SCAN_DATA*      SCAN_getData(void);
 SCAN_LOOP_DATA*   SCAN_getLoopData(uint32_t index);

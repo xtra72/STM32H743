@@ -1,4 +1,5 @@
 #include "target.h"
+#include "system.h"
 #include "config.h"
 #include "shell.h"
 
@@ -126,24 +127,24 @@ RET_VALUE SHELL_COMMAND_date(char *argv[], uint32_t argc, struct _SHELL_COMMAND*
     return  ret;
 }
 
-RET_VALUE SHELL_COMMAND_serialNumber(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
+RET_VALUE SHELL_COMMAND_deviceId(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
 {
     if (argc == 1)
     {
-        SHELL_printf("%s\n", config_.serialNumber);
+        SHELL_printf("%s\n", config_.deviceId);
     }
     else if (argc == 3)
     {
         if (strcasecmp(argv[1], "set") == 0)
         {
-            if (strlen(argv[2]) < CONFIG_SERIAL_NUMBER_LEN)
+            if (strlen(argv[2]) < CONFIG_DEVICE_ID_LEN)
             {
-                strcpy(config_.serialNumber, argv[2]);
-                SHELL_printf("S/N changed to %s\n", config_.serialNumber);
+                strcpy(config_.deviceId, argv[2]);
+                SHELL_printf("Device ID changed to %s\n", config_.deviceId);
             }
             else
             {
-                SHELL_printf("Invalid S/N\n");
+                SHELL_printf("Invalid device id\n");
             }
         }
     }
@@ -161,7 +162,7 @@ RET_VALUE   SHELL_COMMAND_sleep(char *argv[], uint32_t argc, struct _SHELL_COMMA
 
 RET_VALUE SHELL_COMMAND_reset(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
 {
-    //SYS_reset();
+    SYS_reset();
 
     return  RET_OK;
 }

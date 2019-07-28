@@ -22,7 +22,7 @@
 #define TARGET_SHELL_PRIORITY           osPriorityNormal
 
 #define TARGET_SHELL_COMMAND_MAX        128
-#define TARGET_SERIAL_NUMBER_LEN        32
+#define TARGET_DEVICE_ID_LEN            8
 #define TARGET_PASSWORD_LEN             32
 
 
@@ -35,9 +35,27 @@
 #define TARGET_FLASH_CONFIG_SIZE        0x400
 #define TARGET_FLASH_CONFIG_SLOT_COUNT  4
 
+#define TARGET_SDRAM_START_ADDRESS      0xD0000000
+#define TARGET_SDRAM_SIZE               (32 * 1024 * 1024)
+#define TARGET_SDRAM_START_HEAP_ADRESS  0xD0000000
+#define TARGET_SDRAM_HEAP_SIZE          (32 * 1024 * 1024)
+
+#define TARGET_SCAN_INTERVAL            2
+#define TARGET_SCAN_COUNT               (30 * 60 * 500)
+
+#define TARGET_RF_SHORT_ADDRESS         2
+#define TERGET_RF_FREQUENCY             91500000
+#define TARGET_RF_POWER                 18
 #define TARGET_RF_BITRATE               4800
 #define TARGET_RF_PAYLOAD_MAX           60
 #define TARGET_RF_TIMEOUT               1000
+
+#define TARGET_RF_KEEP_ALIVE            1000
+
+#define TARGET_RF_TRANSFER_INTERVAL     20
+#define TARGET_RF_TRANSFER_NOP          3
+#define TARGET_RF_TRANSFER_NOP_MIN      1
+#define TARGET_RF_TRANSFER_NOP_MAX      3
 
 #include "main.h"
 

@@ -71,6 +71,21 @@ RET_VALUE SHELL_ADC_help(char *argv[], uint32_t argc, struct _SHELL_COMMAND cons
 
 RET_VALUE SHELL_ADC_start(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
 {
+    for(uint32_t i = 0 ; i < ADC_CHANNEL_getCount() ; i++)
+    {
+        ADC_CHANNEL_clearValue(i);
+    }
+
+    ADC_CHANNEL_start();
+
+    osDelay(10);
+    for(uint32_t i = 0 ; i < ADC_CHANNEL_getCount() ; i++)
+    {
+        uint16_t    value;
+        ADC_CHANNEL_getLastValue(i, &value);
+        SHELL_printf(" %5d", value);
+    }
+    SHELL_printf("\n");
 
     return  RET_OK;
 }

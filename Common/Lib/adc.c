@@ -1,4 +1,5 @@
 #include "target.h"
+#include "config.h"
 #include "adc.h"
 
 #define __MODULE_NAME__     "ADC"
@@ -17,6 +18,7 @@ typedef struct
     uint32_t                lastIndex;
     uint32_t                maxCount;
     uint32_t                count;
+    uint16_t                lastData;
     uint16_t                *data;
     struct
     {
@@ -28,10 +30,12 @@ typedef struct
 
 static  ADC_HandleTypeDef* adcList_[ADC_COUNT_MAX] = {0, };
 
+extern  CONFIG          config_;
 static  bool            run = false;
 static  ADC_CHANNEL     *channels = NULL;
 static  uint32_t        channelCount = 0;
 static  uint32_t        currentChannelId = 0;
+static  bool            roundFinished = true;
 
 RET_VALUE   ADC_init(ADC_HandleTypeDef* adcList[], uint32_t count)
 {
@@ -45,11 +49,10 @@ RET_VALUE   ADC_init(ADC_HandleTypeDef* adcList[], uint32_t count)
     return  RET_OK;
 }
 
-RET_VALUE   ADC_config(ADC_CONFIG* config)
-{
-    ASSERT(config);
 
-    if (config->channelCount == 0)
+RET_VALUE   ADC_start(void)
+{
+    if (config_.adc.channelCount == 0)
     {
         DEBUG("ADC count is 0.\n");
         return  RET_ERROR;
@@ -67,28 +70,28 @@ RET_VALUE   ADC_config(ADC_CONFIG* config)
         channelCount = 0;
     }
 
-    channels = pvPortMalloc(sizeof(ADC_CHANNEL) * config->channelCount);
+    channels = pvPortMalloc(sizeof(ADC_CHANNEL) * config_.adc.channelCount);
     if (channels == NULL)
     {
         return  RET_NOT_ENOUGH_MEMORY;
     }
-    memset(channels, 0, sizeof(ADC_CHANNEL) * config->channelCount);
+    memset(channels, 0, sizeof(ADC_CHANNEL) * config_.adc.channelCount);
 
-    channelCount = config->channelCount;
+    channelCount = config_.adc.channelCount;
     for(int i = 0 ; i < channelCount ; i++)
     {
-        channels[i].bufferSize = config->dataCount + 1;
-        channels[i].maxCount = config->dataCount;
+        channels[i].bufferSize = config_.adc.dataCount + 1;
+        channels[i].maxCount = config_.adc.dataCount;
         channels[i].data = pvPortMalloc(sizeof(uint16_t) * channels[i].bufferSize);
         memset(channels[i].data, 0, sizeof(uint16_t) * channels[i].bufferSize);
     }
 
     for(int i = 0 ; i < channelCount ; i++)
     {
-        if (config->channels[i].deviceId < ADC_COUNT_MAX)
+        if (config_.adc.channels[i].deviceId < ADC_COUNT_MAX)
         {
-            channels[i].handle = adcList_[config->channels[i].deviceId];
-            channels[i].config.Channel      = config->channels[i].channelId;  /* Sampled channel number */
+            channels[i].handle = adcList_[config_.adc.channels[i].deviceId];
+            channels[i].config.Channel      = config_.adc.channels[i].channelId;  /* Sampled channel number */
             channels[i].config.Rank         = ADC_REGULAR_RANK_1;           /* Rank of sampled channel number ADCx_CHANNEL */
             channels[i].config.SamplingTime = ADC_SAMPLETIME_8CYCLES_5;     /* Sampling time (number of clock cycles unit) */
             channels[i].config.SingleDiff   = ADC_SINGLE_ENDED;             /* Single-ended input channel */
@@ -97,19 +100,9 @@ RET_VALUE   ADC_config(ADC_CONFIG* config)
         }
     }
 
-    return  RET_OK;
-}
-
-RET_VALUE   ADC_start(void)
-{
-    if (run)
-    {
-        return  RET_ALREADY_STARTED;
-    }
-
     run  = true;
 
-    return  RET_ERROR;
+    return  RET_OK;
 }
 
 RET_VALUE   ADC_stop(void)
@@ -129,7 +122,26 @@ uint32_t    ADC_CHANNEL_getCount(void)
     return  channelCount;
 }
 
-RET_VALUE   ADC_CHANNEL_start(uint32_t channelId)
+RET_VALUE   ADC_CHANNEL_start(void)
+{
+    if (!roundFinished)
+    {
+        return  RET_OK;
+    }
+
+    roundFinished = false;
+
+    return  ADC_CHANNEL_run(0);
+}
+
+RET_VALUE   ADC_CHANNEL_stop(void)
+{
+    roundFinished = true;
+
+    return  RET_OK;
+}
+
+RET_VALUE   ADC_CHANNEL_run(uint32_t channelId)
 {
     if (channelCount <= channelId)
     {
@@ -164,7 +176,11 @@ RET_VALUE   ADC_CHANNEL_next(void)
 
     if ((currentChannelId + 1) < channelCount)
     {
-        ADC_CHANNEL_start((currentChannelId + 1) % channelCount);
+        ADC_CHANNEL_run((currentChannelId + 1) % channelCount);
+    }
+    else
+    {
+        ADC_CHANNEL_stop();
     }
 
     return  RET_OK;
@@ -174,6 +190,8 @@ RET_VALUE   ADC_CHANNEL_clearValue(uint32_t channelId)
 {
     if (channelId < channelCount)
     {
+        channels[channelId].startIndex = 0;
+        channels[channelId].lastIndex = 0;
         channels[channelId].count = 0;
         return  RET_OK;
     }
@@ -208,14 +226,18 @@ RET_VALUE   ADC_CHANNEL_getLastValue(uint32_t channelId, uint16_t* value)
 {
     ASSERT(value);
 
-    return  ADC_CHANNEL_getValue(channelId, channels[channelId].count - 1, value);
+    *value = channels[channelId].lastData;
+
+    return  RET_OK;
+//    return  ADC_CHANNEL_getValue(channelId, channels[channelId].count - 1, value);
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
     HAL_ADC_Stop_IT(channels[currentChannelId].handle);
 
-    channels[currentChannelId].data[channels[currentChannelId].lastIndex] = HAL_ADC_GetValue(channels[currentChannelId].handle);
+    channels[currentChannelId].lastData = HAL_ADC_GetValue(channels[currentChannelId].handle);
+        channels[currentChannelId].data[channels[currentChannelId].lastIndex] = channels[currentChannelId].lastData;
     if (channels[currentChannelId].count + 1 < channels[currentChannelId].bufferSize)
     {
         channels[currentChannelId].count = channels[currentChannelId].count + 1;

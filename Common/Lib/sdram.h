@@ -15,9 +15,6 @@ typedef struct
 
 RET_VALUE   SDRAM_init(SDRAM_HandleTypeDef *hsdram);
 
-RET_VALUE   SDRAM_setConfig(SDRAM_CONFIG* config);
-RET_VALUE   SDRAM_getConfig(SDRAM_CONFIG* config);
-
 RET_VALUE   SDRAM_start(void);
 RET_VALUE   SDRAM_fill(uint32_t address, uint32_t value, uint32_t size);
 

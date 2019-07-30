@@ -20,7 +20,7 @@
         <LeaveTargetRunning>_ 0</LeaveTargetRunning>
     </StLinkDriver>
     <DebugChecksum>
-        <Checksum>788710773</Checksum>
+        <Checksum>530260548</Checksum>
     </DebugChecksum>
     <Exceptions>
         <StopOnUncaught>_ 0</StopOnUncaught>
@@ -59,7 +59,7 @@
         <mode>0</mode>
     </DisassembleMode>
     <Breakpoints2>
-        <Bp0>_ 1 "EMUL_CODE" "{$PROJ_DIR$\..\..\Common\App\rf\rf.c}.615.29" 0 0 1 "" 0 "" 0</Bp0>
+        <Bp0>_ 1 "EMUL_DATA" "RF_sendScanStart" 0 0 0 0 4294967295</Bp0>
         <Count>1</Count>
     </Breakpoints2>
     <LogFile>

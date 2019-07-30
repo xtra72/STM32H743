@@ -181,8 +181,46 @@ typedef struct
 
 typedef struct
 {
-    uint32_t     timeStamp;
+    uint32_t    mid;
+    uint32_t    timeStamp;
 }   RF_RESPONSE_CONTRACT;
+
+typedef struct
+{
+    uint32_t    mid;
+}   RF_MOTION_DETECTION;
+
+typedef struct
+{
+    uint32_t    mid;
+}   RF_MOTION_DETECTION_STARTED;
+
+typedef struct
+{
+    uint32_t    mid;
+}   RF_MOTION_DETECTION_STOPED;
+
+typedef struct
+{
+    uint32_t    mid;
+}   RF_REQ_SCAN_PARAMS;
+
+typedef struct
+{
+    uint32_t    mid;
+}   RF_SCAN_STARTED;
+
+typedef struct
+{
+    uint32_t    mid;
+}   RF_SCAN_STOPED;
+
+
+typedef struct
+{
+    uint32_t    mid;
+    uint32_t     time;
+}   RF_SLEEP;
 
 #define RF_FRAME_SIZE_MAX           sizeof(RF_FRAME)
 

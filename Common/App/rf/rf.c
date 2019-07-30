@@ -63,6 +63,7 @@ static  RET_VALUE           retSetConfig_ = RET_TIMEOUT;
 static  RF_CC1310_CONFIG    resultGetCC1310Config_;
 static  RET_VALUE           retGetConfig_= RET_TIMEOUT;
 static  uint32_t            sleepTime_ = 0;
+static  uint32_t            sleepStartTime_ = 0;
 
 static  RF_STATISTICS       statistics_ =
 {
@@ -595,8 +596,24 @@ RET_VALUE   RF_commandProcessing(uint8_t* _data, uint32_t _length)
                     {
                         if (status_ == RF_STATUS_READY)
                         {
-                            RF_motionDetectionStart(0);
-                            RF_setStatus(RF_STATUS_MOTION_DETECTION);
+                            if (rf_frame->header.length == sizeof(RF_MOTION_DETECTION))
+                            {
+                                RF_MOTION_DETECTION*   params = (RF_MOTION_DETECTION*)rf_frame->payload;
+                                uint32_t    mid = 0;
+
+                                mid |= (params->mid >> 24) & 0x000000FF;
+                                mid |= (params->mid >> 8) & 0x0000FF00;
+                                mid |= (params->mid << 8) & 0x00FF0000;
+                                mid |= (params->mid << 24) & 0xFF000000;
+
+                                RF_motionDetectionStart(0);
+                                RF_setStatus(RF_STATUS_MOTION_DETECTION);
+                            }
+                            else
+                            {
+                                DEBUG("Payload does not conform to Contract response format.");
+                            }
+
                         }
                         else
                         {
@@ -609,8 +626,23 @@ RET_VALUE   RF_commandProcessing(uint8_t* _data, uint32_t _length)
                     {
                         if (status_ == RF_STATUS_MOTION_DETECTION)
                         {
-                            RF_motionDetectionStop(0);
-                            RF_setStatus(RF_STATUS_READY);
+                            if (rf_frame->header.length == sizeof(RF_MOTION_DETECTION))
+                            {
+                                RF_MOTION_DETECTION*   params = (RF_MOTION_DETECTION*)rf_frame->payload;
+                                uint32_t    mid = 0;
+
+                                mid |= (params->mid >> 24) & 0x000000FF;
+                                mid |= (params->mid >> 8) & 0x0000FF00;
+                                mid |= (params->mid << 8) & 0x00FF0000;
+                                mid |= (params->mid << 24) & 0xFF000000;
+
+                                RF_motionDetectionStop(0);
+                                RF_setStatus(RF_STATUS_READY);
+                            }
+                            else
+                            {
+                                DEBUG("Payload does not conform to Contract response format.");
+                            }
                         }
                         else
                         {
@@ -623,11 +655,29 @@ RET_VALUE   RF_commandProcessing(uint8_t* _data, uint32_t _length)
                     {
                         if (status_ == RF_STATUS_MOTION_DETECTED)
                         {
-                            RF_motionDetectionStop(0);
-                            SCAN_DATA_reset();
-                            SCAN_start();
-                            RF_startTransferScanData();
-                            RF_setStatus(RF_STATUS_SCAN);
+                            if (rf_frame->header.length == sizeof(RF_REQ_SCAN_PARAMS))
+                            {
+                                RF_REQ_SCAN_PARAMS*   params = (RF_REQ_SCAN_PARAMS*)rf_frame->payload;
+                                uint32_t    mid = 0;
+
+                                mid |= (params->mid >> 24) & 0x000000FF;
+                                mid |= (params->mid >> 8) & 0x0000FF00;
+                                mid |= (params->mid << 8) & 0x00FF0000;
+                                mid |= (params->mid << 24) & 0xFF000000;
+
+                                if (SCAN_start() == RET_OK)
+                                {
+                                    RF_motionDetectionStop(0);
+                                    SCAN_DATA_reset();
+                                    RF_startTransferScanData();
+                                    RF_sendScanStart(0, 100);
+                                    RF_setStatus(RF_STATUS_SCAN);
+                                }
+                            }
+                            else
+                            {
+                                DEBUG("Payload does not conform to Contract response format.");
+                            }
                         }
                         else
                         {
@@ -640,8 +690,24 @@ RET_VALUE   RF_commandProcessing(uint8_t* _data, uint32_t _length)
                     {
                         if (status_ == RF_STATUS_SCAN)
                         {
-                            SCAN_stop();
-                            RF_setStatus(RF_STATUS_READY);
+                            if (rf_frame->header.length == sizeof(RF_REQ_SCAN_PARAMS))
+                            {
+                                RF_REQ_SCAN_PARAMS*   params = (RF_REQ_SCAN_PARAMS*)rf_frame->payload;
+                                uint32_t    mid = 0;
+
+                                mid |= (params->mid >> 24) & 0x000000FF;
+                                mid |= (params->mid >> 8) & 0x0000FF00;
+                                mid |= (params->mid << 8) & 0x00FF0000;
+                                mid |= (params->mid << 24) & 0xFF000000;
+
+                                SCAN_stop();
+                                RF_sendScanStop(0, 100);
+                                RF_setStatus(RF_STATUS_READY);
+                            }
+                            else
+                            {
+                                DEBUG("Payload does not conform to Contract response format.");
+                            }
                         }
                         else
                         {
@@ -652,13 +718,45 @@ RET_VALUE   RF_commandProcessing(uint8_t* _data, uint32_t _length)
 
                 case    RF_MSG_TRANS_START:
                     {
-                        RF_startTransferScanData();
+                        if (rf_frame->header.length == sizeof(RF_MOTION_DETECTION))
+                        {
+                            RF_MOTION_DETECTION*   params = (RF_MOTION_DETECTION*)rf_frame->payload;
+                            uint32_t    mid = 0;
+
+                            mid |= (params->mid >> 24) & 0x000000FF;
+                            mid |= (params->mid >> 8) & 0x0000FF00;
+                            mid |= (params->mid << 8) & 0x00FF0000;
+                            mid |= (params->mid << 24) & 0xFF000000;
+
+                            RF_startTransferScanData();
+                            RF_sendTransferStart(0, 100);
+                        }
+                        else
+                        {
+                            DEBUG("Payload does not conform to Contract response format.");
+                        }
                     }
                     break;
 
                 case    RF_MSG_TRANS_STOP:
                     {
-                        RF_stopTransferScanData();
+                        if (rf_frame->header.length == sizeof(RF_MOTION_DETECTION))
+                        {
+                            RF_MOTION_DETECTION*   params = (RF_MOTION_DETECTION*)rf_frame->payload;
+                            uint32_t    mid = 0;
+
+                            mid |= (params->mid >> 24) & 0x000000FF;
+                            mid |= (params->mid >> 8) & 0x0000FF00;
+                            mid |= (params->mid << 8) & 0x00FF0000;
+                            mid |= (params->mid << 24) & 0xFF000000;
+
+                            RF_stopTransferScanData();
+                            RF_sendTransferStop(0, 100);
+                        }
+                        else
+                        {
+                            DEBUG("Payload does not conform to Contract response format.");
+                        }
                     }
                 break;
 
@@ -666,7 +764,7 @@ RET_VALUE   RF_commandProcessing(uint8_t* _data, uint32_t _length)
                     {
                         if (rf_frame->header.length == sizeof(RF_SLEEP))
                         {
-                            RF_SLEEP*   params = (RF_SLEEP)rf_frame->payload;
+                            RF_SLEEP*   params = (RF_SLEEP *)rf_frame->payload;
                             uint32_t    sleepTime =0;
 
                             sleepTime |= (params->time >> 24) & 0x000000FF;
@@ -695,6 +793,7 @@ RET_VALUE   RF_commandProcessing(uint8_t* _data, uint32_t _length)
                         else if (status_ == RF_STATUS_SCAN)
                         {
                             SCAN_stop();
+                            RF_sendScanStop(0, 100);
                             RF_setStatus(RF_STATUS_READY);
                         }
                     }
@@ -946,11 +1045,13 @@ RET_VALUE   RF_sendContract(uint16_t _destAddress, char* _deviceId, uint8_t _cha
 
 RET_VALUE   RF_sendMotionDetectionStart(uint16_t _destAddress, uint32_t _timeout)
 {
+    DEBUG("RF_sendMotionDetectionStart");
     return  RF_send(RF_IO_CMD_TX_DATA, _destAddress, RF_MSG_MOTION_DETECTION_STARTED, NULL, 0, RF_OPTIONS_ACK, _timeout);
 }
 
 RET_VALUE   RF_sendMotionDetectionStop(uint16_t _destAddress, uint32_t _timeout)
 {
+    DEBUG("RF_sendMotionDetectionStop");
     return  RF_send(RF_IO_CMD_TX_DATA, _destAddress, RF_MSG_MOTION_DETECTION_STOPPED, NULL, 0, RF_OPTIONS_ACK, _timeout);
 }
 
@@ -961,21 +1062,25 @@ RET_VALUE   RF_sendMotionDetected(uint16_t _destAddress, uint32_t _timeout)
 
 RET_VALUE   RF_sendScanStart(uint16_t _destAddress, uint32_t _timeout)
 {
+    DEBUG("RF_sendScanStart");
     return  RF_send(RF_IO_CMD_TX_DATA, _destAddress, RF_MSG_SCAN_STARTED, NULL, 0, RF_OPTIONS_ACK, _timeout);
 }
 
 RET_VALUE   RF_sendScanStop(uint16_t _destAddress, uint32_t _timeout)
 {
+    DEBUG("RF_sendScanStop");
     return  RF_send(RF_IO_CMD_TX_DATA, _destAddress, RF_MSG_SCAN_STOPPED, NULL, 0, RF_OPTIONS_ACK, _timeout);
 }
 
 RET_VALUE   RF_sendTransferStart(uint16_t _destAddress, uint32_t _timeout)
 {
+    DEBUG("RF_sendTransferStart");
     return  RF_send(RF_IO_CMD_TX_DATA, _destAddress, RF_MSG_TRANS_STARTED, NULL, 0, RF_OPTIONS_ACK, _timeout);
 }
 
 RET_VALUE   RF_sendTransferStop(uint16_t _destAddress, uint32_t _timeout)
 {
+    DEBUG("RF_sendTransferStop");
     return  RF_send(RF_IO_CMD_TX_DATA, _destAddress, RF_MSG_TRANS_STOPPED, NULL, 0, RF_OPTIONS_ACK, _timeout);
 }
 
@@ -1058,8 +1163,6 @@ RET_VALUE   RF_motionDetectionStop(uint32_t _timeout)
     RF_IO_FRAME    frame = {    .cmd = RF_IO_REQ_MOTION_DETECT_STOP, .length = 0, .crc = 0  };
 
     return  RF_sendFrame(&frame, _timeout);
-
-    return  RET_ERROR;
 }
 
 /*******************************************************************

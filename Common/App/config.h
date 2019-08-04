@@ -42,7 +42,7 @@ typedef struct
     uint32_t        sequence;
 
     char            password[CONFIG_PASSWORD_LEN + 1];
-    char             deviceId[CONFIG_DEVICE_ID_LEN + 1];
+    char            deviceId[CONFIG_DEVICE_ID_LEN + 1];
 
     ADC_CONFIG      adc;
 #if SUPPORT_DRAM
@@ -57,7 +57,6 @@ typedef struct
 #endif
     TRACE_CONFIG    trace;
 }   CONFIG;
-
 
 RET_VALUE   CONFIG_init(void);
 RET_VALUE   CONFIG_loadDefault(CONFIG* config);

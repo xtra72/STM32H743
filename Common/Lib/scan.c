@@ -23,6 +23,15 @@ RET_VALUE   SCAN_init(void)
   osTimerDef(timerLoopFinished, SCAN_loopFinishedCallback);
   timerLoopFinishedHandler = osTimerCreate(osTimer(timerLoopFinished), osTimerPeriodic, NULL);
 
+    uint32_t    memorySize = sizeof(SCAN_DATA) + sizeof(SCAN_LOOP_DATA) * config_.scan.count;
+
+    data_ = SDRAM_malloc(memorySize);
+    if (data_ == NULL)
+    {
+        return  RET_NOT_ENOUGH_MEMORY;
+    }
+    memset(data_, 0, memorySize);
+
   return    RET_OK;
 }
 

@@ -12,22 +12,24 @@ RET_VALUE SHELL_config(char *argv[], uint32_t argc, struct _SHELL_COMMAND const*
 
     if (argc == 1)
     {
+        SHELL_printf("%16s : %d s\n",   "Keep Alive", RF_getKeepAlive());
+        SHELL_printf("%16s : %d s\n",   "Ready Timeout", RF_getReadyTimeout());
+        SHELL_printf("%16s : %d ms\n",  "Transfer Cycle", RF_getTransferInterval());
+        SHELL_printf("%16s : %d\n",     "NOP", RF_getTransferNOP());
+
         SHELL_printf("\n%s\n", "[ System ]");
-        SHELL_printf("%16s : %s\n", "Device ID", config_.deviceId);
-
-        SHELL_printf("\n%s\n", "[ Debug ]");
-        SHELL_printf("%16s : %s\n", "Trace", TRACE_getEnable()?"ON":"OFF");
-
-        SHELL_printf("%16s : %s\n", "Status", RF_getStatusString(RF_getStatus()));
-        SHELL_printf("%16s : %d ms\n", "Keep Alive", RF_getKeepAlive());
-        SHELL_printf("%16s : %d ms\n", "Transfer Cycle", RF_getTransferInterval());
-        SHELL_printf("%16s : %d\n", "NOP", RF_getTransferNOP());
+        SHELL_printf("%16s : %s\n",     "Device ID", config_.deviceId);
+        SHELL_printf("%16s : %s\n",     "Status", RF_getStatusString(RF_getStatus()));
 
         SHELL_RF_info();
 #if SUPPORT_DRAM
         SHELL_printf("\n%s\n", "[ SCAN ]");
         SHELL_SCAN_info();
 #endif
+
+        SHELL_printf("\n%s\n", "[ Debug ]");
+        SHELL_printf("%16s : %s\n",     "Trace", TRACE_getEnable()?"ON":"OFF");
+
         return  RET_OK;
     }
 

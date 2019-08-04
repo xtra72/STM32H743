@@ -17,6 +17,7 @@ typedef struct
     RF_CC1310_CONFIG    cc1310;
     uint32_t            transferInterval;
     uint32_t            keepAlive;
+    uint32_t            readyTimeout;
     uint32_t            nop;
 }   RF_CONFIG;
 
@@ -41,6 +42,8 @@ typedef enum
 {
     RF_STATUS_STOPPED,
     RF_STATUS_INIT,
+    RF_STATUS_INITIALIZING,
+    RF_STATUS_INIT_FINISHED,
     RF_STATUS_WAITING_FOR_CONTRACT,
     RF_STATUS_READY,
     RF_STATUS_MOTION_DETECTION,
@@ -56,8 +59,15 @@ typedef struct
     uint8_t     channelCuont;
 }   RF_REQUEST_CONTRACT;
 
+
+typedef struct
+{
+    uint32_t     battery;
+}   RF_KEEP_ALIVE;
+
 #define RF_MSG_DATA                         1
 #define RF_MSG_ACK                          2
+#define RF_MSG_PING                         3
 #define RF_MSG_CONTRACT_REQUEST             4
 #define RF_MSG_CONTRACT_CONFIRM             5
 #define RF_MSG_MOTION_DETECTION_START       6
@@ -81,6 +91,8 @@ typedef struct
 #define RF_MSG_TRANS_ALREADY_STOPPED        24
 #define RF_MSG_SLEEP                        25
 #define RF_MSG_STOP                         26
+#define RF_MSG_READY                        27
+#define RF_MSG_KEEPALIVE                    28
 
 #define RF_CMD                              0x00
 #define RF_DATA                             (RF_CMD + 1)
@@ -135,6 +147,8 @@ typedef struct
 
 #define RF_IO_CMD_TX_DATA           0x01
 #define RF_SPI_CMD_RX_DATA          0x02
+#define RF_IO_CMD_PING              0x03
+#define RF_IO_CMD_RADIO_START      0x04
 
 #define RF_SPI_CMD_REQUEST_GET_CONFIG       0x11
 #define RF_SPI_CMD_REQUEST_SET_CONFIG       0x12
@@ -298,12 +312,14 @@ RET_VALUE   RF_sendRequestDataCount(uint16_t _destAddress, uint32_t _timeout);
 RET_VALUE   RF_sendResponseDataCount(uint16_t _destAddress, uint32_t _count, uint32_t _timeout);
 RET_VALUE   RF_recvResponseDataCount(uint16_t* _srcAddress, uint32_t* _count, uint32_t _timeout);
 RET_VALUE   RF_sendRequestData(uint16_t _destAddress, uint32_t _offset, uint32_t _count, uint32_t _timeout);
+RET_VALUE   RF_sendRadioStart(uint16_t _destAddress, char* _deviceId, uint32_t _timeout);
 RET_VALUE   RF_sendMotionDetectionStart(uint16_t _destAddress, uint32_t _timeout);;
 RET_VALUE   RF_sendMotionDetectionStop(uint16_t _destAddress, uint32_t _timeout);
 RET_VALUE   RF_sendScanStart(uint16_t _destAddress, uint32_t _timeout);
 RET_VALUE   RF_sendScanStop(uint16_t _destAddress, uint32_t _timeout);
 RET_VALUE   RF_sendTransferStart(uint16_t _destAddress, uint32_t _timeout);
 RET_VALUE   RF_sendTransferStop(uint16_t _destAddress, uint32_t _timeout);
+RET_VALUE   RF_sendKeepAlive(uint16_t _destAddress, uint32_t _battery, uint32_t _timeout);
 RET_VALUE   RF_sendDummy(void);
 
 RET_VALUE   RF_sendACK(uint16_t _destAddress, uint32_t _timeout);
@@ -326,12 +342,16 @@ RET_VALUE   RF_motionDetectionStop(uint32_t timeout);
 
 RET_VALUE   RF_startTransferScanData();
 RET_VALUE   RF_stopTransferScanData();
+bool        RF_isRunTransferScanData();
 
 uint32_t    RF_getKeepAlive();
 RET_VALUE   RF_setKeepAlive(uint32_t _interval);
 
 uint32_t    RF_getTransferInterval();
 RET_VALUE   RF_setTransferInterval(uint32_t _interval);
+
+uint32_t    RF_getReadyTimeout();
+RET_VALUE   RF_setReadyTimeout(uint32_t _interval);
 
 uint32_t    RF_getTransferNOP();
 RET_VALUE   RF_setTransferNOP(uint32_t _nop);

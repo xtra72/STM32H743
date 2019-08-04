@@ -84,6 +84,7 @@ const CONFIG  defaultConfig =
         },
         .keepAlive        = TARGET_RF_KEEP_ALIVE,
         .transferInterval = TARGET_RF_TRANSFER_INTERVAL,
+        .readyTimeout     = 60,
         .nop              = TARGET_RF_TRANSFER_NOP
 
 

@@ -12,6 +12,7 @@ RET_VALUE   SHELL_adc(char *argv[], uint32_t argc, struct _SHELL_COMMAND  const*
 RET_VALUE   SHELL_sdram(char *argv[], uint32_t argc, struct _SHELL_COMMAND  const* command);
 RET_VALUE   SHELL_config(char *argv[], uint32_t argc, struct _SHELL_COMMAND  const* command);
 RET_VALUE   SHELL_spi(char *argv[], uint32_t argc, struct _SHELL_COMMAND  const* command);
+RET_VALUE   SHELL_i2c(char *argv[], uint32_t argc, struct _SHELL_COMMAND  const* command);
 
 RET_VALUE   COM_scan(char *argv[], uint32_t argc, struct _COM_COMMAND  const* command);
 RET_VALUE   COM_DATA(char *argv[], uint32_t argc, struct _COM_COMMAND  const* command);
@@ -45,6 +46,11 @@ static const SHELL_COMMAND   shellCommands[] =
         .name       = "spi",
         .function   = SHELL_spi,
         .shortHelp  = "SPI"
+    },
+    {
+        .name       = "i2c",
+        .function   = SHELL_i2c,
+        .shortHelp  = "I2C"
     },
 #if SUPPORT_DRAM
     {
@@ -88,19 +94,6 @@ void MAIN_taskEntry(void const * argument)
     COM_init(comCommands, sizeof(comCommands) / sizeof(COM_COMMAND));
 #endif
     TIME2_init();
-#if SUPPORT_DRAM
-    SCAN_init();
-#endif
-
-    //TRACE_setConfig(&config_.trace);
-    //SHELL_setConfig(&config_.shell);
-#if SUPPORT_COM
-    //\COM_setConfig(&config_.comport);
-#endif
-    //ADC_config(&config_.adc);
-#if SUPPORT_DRAM
-//    SCAN_setConfig(&config_.scan);
-#endif
 
     SHELL_start();
     SDRAM_start();
@@ -108,6 +101,11 @@ void MAIN_taskEntry(void const * argument)
     COM_start();
 #endif
     ADC_start();
+
+#if SUPPORT_DRAM
+    SCAN_init();
+#endif
+
     RF_start();
 
     for(;;)

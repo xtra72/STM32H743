@@ -58,6 +58,7 @@ RET_VALUE   SPI_transmitReceive(uint8_t* _txBuffer, uint8_t* _rxBuffer, uint32_t
     RET_VALUE   ret = RET_ERROR;
     uint32_t    startTime = TICK_get();
 
+    osDelay(1);
     while((0 < TICK_remainTime(startTime, _timeout)) && (ret != RET_OK))
     {
         status = HAL_SPI_TransmitReceive_IT(spi_, _txBuffer, _rxBuffer, _size);

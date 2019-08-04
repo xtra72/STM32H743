@@ -22,6 +22,7 @@ RET_VALUE   SHELL_RF_statistics(char *argv[], uint32_t argc, struct _SHELL_COMMA
 RET_VALUE   SHELL_RF_test(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
 RET_VALUE   SHELL_RF_keepalive(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
 RET_VALUE   SHELL_RF_interval(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
+RET_VALUE SHELL_RF_readyTimeout(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
 RET_VALUE   SHELL_RF_nop(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
 
 static const SHELL_COMMAND   commandSet_[] =
@@ -80,6 +81,11 @@ static const SHELL_COMMAND   commandSet_[] =
         .name = "interval",
         .function = SHELL_RF_interval,
         .shortHelp = "interval"
+    },
+    {
+        .name = "readytimeout",
+        .function = SHELL_RF_readyTimeout,
+        .shortHelp = "Ready Timeout"
     },
     {
         .name = "nop",
@@ -549,6 +555,35 @@ RET_VALUE SHELL_RF_interval(char *argv[], uint32_t argc, struct _SHELL_COMMAND c
         }
 
         SHELL_printf("Transfer interval changed : %d ms -> %d ms\n", old_value, value);
+    }
+
+    return  RET_OK;
+}
+
+RET_VALUE SHELL_RF_readyTimeout(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
+{
+    if (argc == 1)
+    {
+        SHELL_printf("%d s\n", RF_getReadyTimeout());
+    }
+    else if (argc == 2)
+    {
+        uint32_t    old_value = RF_getReadyTimeout();
+        uint32_t    value;
+
+        if (!strToUint32(argv[1], &value))
+        {
+            SHELL_printf("Invalid argument!\n");
+            return  RET_INVALID_ARGUMENT;
+        }
+
+        if (RF_setReadyTimeout(value) != RET_OK)
+        {
+            SHELL_printf("Invalid argument!\n");
+            return  RET_INVALID_ARGUMENT;
+        }
+
+        SHELL_printf("Ready Timeout changed : %d s -> %d s\n", old_value, value);
     }
 
     return  RET_OK;

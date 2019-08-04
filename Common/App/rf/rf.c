@@ -8,6 +8,8 @@
 #include "shell.h"
 #include "gpio.h"
 #include "spi.h"
+#include "max17043.h"
+#include "system.h"
 
 #ifndef RF_BUFFER_SIZE_MAX
 #define RF_BUFFER_SIZE_MAX  RF_SPI_FRAME_SIZE
@@ -83,22 +85,29 @@ static  const char*   statusStrings_[] =
 {
     "Stopped",
     "Init",
+    "Init",
+    "Init",
     "Waiting for contract",
     "Ready",
     "Motion Detection",
     "Motion Detected",
     "Scan",
-    "Slee"
+    "Sleep"
 };
 
 void RF_transferScanData(void const * argument);
+void RF_transferKeepAlive(void const * argument);
+void    RF_readyTimeout(void const * argument);
+
+static  osTimerId   timerLoopTransferKeepAliveHandler = 0;
 
 static  osTimerId   timerLoopFinishedHandler = 0;
 static  uint32_t    motionDetectedNotificationCount_ = 0;
-static  uint32_t    motionDetectedNotificationCountMax_ = 10;
+static  uint32_t    motionDetectedNotificationCountMax_ = 1;
 static  uint32_t    motionDetectedNotificationInterval_ = 10000;
 static  uint32_t    motionDetectedTime_ = 0;
 
+static  osTimerId   timerReadyTimeoutHandler = 0;
 
 
 
@@ -120,6 +129,12 @@ RET_VALUE   RF_init(SPI_HandleTypeDef* _spi)
 
     osTimerDef(timerLoopFinished, RF_transferScanData);
     timerLoopFinishedHandler = osTimerCreate(osTimer(timerLoopFinished), osTimerPeriodic, NULL);
+
+    osTimerDef(timerLoopTransferKeepAlive, RF_transferKeepAlive);
+    timerLoopTransferKeepAliveHandler = osTimerCreate(osTimer(timerLoopTransferKeepAlive), osTimerPeriodic, NULL);
+
+    osTimerDef(timerReadyTimeout, RF_readyTimeout);
+    timerReadyTimeoutHandler = osTimerCreate(osTimer(timerReadyTimeout), osTimerOnce, NULL);
 
     return  RET_OK;
 }
@@ -159,16 +174,20 @@ RET_VALUE   RF_stop(void)
 void RF_taskMain(void const * argument)
 {
     DEBUG("RF task start!\n");
+    static      uint32_t    initial_time;
+    static      uint32_t    init_state = 0;
     uint32_t    serverRequestTime = 0;
 
     uint8_t     buffer[RF_BUFFER_SIZE_MAX];
 
-    RF_reset();
+//    RF_reset();
 
     status_ = RF_STATUS_INIT;
     stop_ = false;
 
     RF_IO_start();
+
+    osTimerStart(timerLoopTransferKeepAliveHandler, config_.rf.keepAlive * 1000);
 
     while(!stop_)
     {
@@ -181,10 +200,58 @@ void RF_taskMain(void const * argument)
         {
         case    RF_STATUS_INIT:
             {
-                RF_setStatus(RF_STATUS_WAITING_FOR_CONTRACT);
+                init_state = 0;
+                initial_time = TICK_get();
+                RF_setStatus(RF_STATUS_INITIALIZING);
             }
             break;
 
+        case    RF_STATUS_INITIALIZING:
+            {
+                uint32_t    current_time = TICK_get();
+                uint32_t    diff_time = current_time - initial_time;
+
+                if (current_time - initial_time >= 10000)
+                {
+                    RF_setStatus(RF_STATUS_INIT_FINISHED);
+                }
+                else if ((diff_time / 1000) != init_state)
+                {
+                    init_state = (diff_time / 1000);
+                    switch(init_state)
+                    {
+                    case    1:
+                        RF_motionDetectionStart(0);
+                        break;
+
+                    case    2:
+                        {
+                            uint16_t    cell = 0;
+                            if (MAX17043_getCell(&cell) != RET_OK)
+                            {
+                                ERROR("Cell voltage check failed!\n");
+                            }
+                            else
+                            {
+                                ERROR("Cell voltage : %3.1f V\n", (cell / 100) / 10.0);
+                            }
+                        }
+                        break;
+
+                    case    9:
+                        RF_motionDetectionStop(0);
+                        break;
+                    }
+                }
+            }
+            break;
+
+        case    RF_STATUS_INIT_FINISHED:
+            {
+                RF_sendRadioStart(0, config_.deviceId, 10);
+                RF_setStatus(RF_STATUS_WAITING_FOR_CONTRACT);
+            }
+            break;
 
         case    RF_STATUS_WAITING_FOR_CONTRACT:
             {
@@ -205,7 +272,7 @@ void RF_taskMain(void const * argument)
             {
                 if (motionDetectedNotificationCount_ < motionDetectedNotificationCountMax_)
                 {
-                    if (TICK_remainTime(motionDetectedTime_ + motionDetectedNotificationCount_ * motionDetectedNotificationInterval_, motionDetectedNotificationInterval_) == 0)
+                    if (TICK_remainTime(motionDetectedTime_, motionDetectedNotificationCount_ * motionDetectedNotificationInterval_) == 0)
                     {
                         RF_sendMotionDetected(0, 1000);
                         motionDetectedNotificationCount_++;
@@ -213,7 +280,13 @@ void RF_taskMain(void const * argument)
                 }
                 else
                 {
-                    RF_setStatus(RF_STATUS_READY);
+                    if (TICK_remainTime(motionDetectedTime_, motionDetectedNotificationCountMax_ * motionDetectedNotificationInterval_) == 0)
+                    {
+                        if (RF_motionDetectionStart(0) == RET_OK)
+                        {
+                            RF_setStatus(RF_STATUS_MOTION_DETECTION);
+                        }
+                    }
                 }
             }
             break;
@@ -267,9 +340,17 @@ void RF_IO_taskMain(void const * argument)
         static  RF_IO_FRAME    rxFrame;
         static  RF_IO_FRAME    txFrame;
 
-        if (RF_QUEUE_pop(txQueue_, (uint8_t *)&txFrame, config_.rf.keepAlive) != RET_OK)
+        txFrame.cmd = 0x00;
+        if (RF_QUEUE_pop(txQueue_, (uint8_t *)&txFrame, 1000) != RET_OK)
         {
-            RF_makeFrame(&txFrame, RF_IO_CMD_TX_DATA, 0, RF_REQ_PING, NULL, 0, RF_OPTIONS_ACK);
+            if (RF_getStatus() != RF_STATUS_MOTION_DETECTION)
+            {
+                RF_makeFrame(&txFrame, RF_IO_CMD_TX_DATA, 0, RF_REQ_PING, NULL, 0, RF_OPTIONS_ACK);
+            }
+            else
+            {
+                RF_makeFrame(&txFrame, RF_IO_CMD_PING, 0, RF_REQ_PING, NULL, 0, RF_OPTIONS_ACK);
+            }
         }
         else
         {
@@ -282,12 +363,22 @@ void RF_IO_taskMain(void const * argument)
             GPIO_MASTER_setStatus(true);
             if (RF_waitingForSlave(true, 1000) == RET_OK)
             {
+                uint32_t    retransmit = 0;
                 uint32_t    startTick = TICK_get();
 
                 GPIO_MASTER_setStatus(false);
 
-                //DEBUG("SPI_transmitReceive(%02x, %02x, %04x)\n", txFrame.cmd, txFrame.length, txFrame.crc);
-                ret = SPI_transmitReceive((uint8_t *)&txFrame, (uint8_t*)&rxFrame, sizeof(RF_IO_FRAME), spiTimeout_);
+                while(retransmit < 2)
+                {
+                    //DEBUG("SPI_transmitReceive(%02x, %02x, %04x)\n", txFrame.cmd, txFrame.length, txFrame.crc);
+                    ret = SPI_transmitReceive((uint8_t *)&txFrame, (uint8_t*)&rxFrame, sizeof(RF_IO_FRAME), spiTimeout_);
+                    if (ret == RET_OK)
+                    {
+                        break;
+                    }
+
+                    retransmit ++;
+                }
                 if (ret == RET_OK)
                 {
                     if (rxFrame.qsize < 10)
@@ -462,25 +553,31 @@ RET_VALUE   RF_commandProcessing(uint8_t* _data, uint32_t _length)
     case    RF_IO_REP_MOTION_DETECT_STARTED:
         {
             DEBUG("Motion detection started!\n");
-            RF_setStatus(RF_STATUS_READY);
-            RF_sendMotionDetectionStart(0, 100);
+            if (status_ >= RF_STATUS_READY)
+            {
+    //            RF_setStatus(RF_STATUS_READY);
+                RF_sendMotionDetectionStart(0, 100);
+            }
         }
         break;
 
     case    RF_IO_REP_MOTION_DETECT_STOPPED:
         {
             DEBUG("Motion detection stopped!\n");
-            if (status_ == RF_STATUS_READY)
+            if (status_ >= RF_STATUS_READY)
             {
-                RF_setStatus(RF_STATUS_INIT);
+    //            if (status_ == RF_STATUS_READY)
+    //            {
+    //                RF_setStatus(RF_STATUS_INIT);
+    //            }
+                RF_sendMotionDetectionStop(0, 100);
             }
-            RF_sendMotionDetectionStop(0, 100);
         }
         break;
 
     case    RF_IO_NOTI_MOTION_DETECTED:
         {
-            if (status_ == RF_STATUS_READY)
+            if (status_ > RF_STATUS_READY)
             {
                 DEBUG("Motion detected!\n");
                 RF_motionDetectionStop(0);
@@ -578,7 +675,8 @@ RET_VALUE   RF_commandProcessing(uint8_t* _data, uint32_t _length)
                                 timeStamp |= (response_contract->timeStamp << 8) & 0x00FF0000;
                                 timeStamp |= (response_contract->timeStamp << 24) & 0xFF000000;
                                 DEBUG("Contract Received : %d", timeStamp);
-                                RF_setStatus(RF_STATUS_READY);
+                                RF_motionDetectionStart(0);
+                                RF_setStatus(RF_STATUS_MOTION_DETECTION);
                             }
                             else
                             {
@@ -651,9 +749,42 @@ RET_VALUE   RF_commandProcessing(uint8_t* _data, uint32_t _length)
                     }
                     break;
 
+                case    RF_MSG_READY:
+                    {
+                        switch(status_)
+                        {
+                        case    RF_STATUS_SCAN:
+                            {
+                                SCAN_stop();
+                                //RF_stopTransferScanData();
+                                RF_setStatus(RF_STATUS_READY);
+                            }
+                            break;
+
+                        case    RF_STATUS_MOTION_DETECTION:
+                            {
+                                RF_motionDetectionStop(0);
+                                RF_setStatus(RF_STATUS_READY);
+                            }
+                            break;
+
+                        case    RF_STATUS_MOTION_DETECTED:
+                            {
+                                RF_setStatus(RF_STATUS_READY);
+                            }
+                            break;
+
+                        default:
+                            {
+                                DEBUG("This command is not allowed in the current status[%s].", RF_getStatusString(status_));
+                            }
+                        }
+                    }
+                    break;
+
                 case    RF_MSG_SCAN_START:
                     {
-                        if (status_ == RF_STATUS_MOTION_DETECTED)
+                        if (status_ != RF_STATUS_SCAN)
                         {
                             if (rf_frame->header.length == sizeof(RF_REQ_SCAN_PARAMS))
                             {
@@ -665,12 +796,15 @@ RET_VALUE   RF_commandProcessing(uint8_t* _data, uint32_t _length)
                                 mid |= (params->mid << 8) & 0x00FF0000;
                                 mid |= (params->mid << 24) & 0xFF000000;
 
+                                RF_motionDetectionStop(0);
                                 if (SCAN_start() == RET_OK)
                                 {
-                                    RF_motionDetectionStop(0);
-                                    SCAN_DATA_reset();
-                                    RF_startTransferScanData();
                                     RF_sendScanStart(0, 100);
+                                    if (!RF_isRunTransferScanData())
+                                    {
+                                        SCAN_DATA_reset();
+                                        RF_startTransferScanData();
+                                    }
                                     RF_setStatus(RF_STATUS_SCAN);
                                 }
                             }
@@ -778,6 +912,10 @@ RET_VALUE   RF_commandProcessing(uint8_t* _data, uint32_t _length)
                             sleepTime_ = sleepTime;
                             sleepStartTime_ = TICK_get();
 
+                            if (SYS_sleep(sleepTime_) != RET_OK)
+                            {
+                                DEBUG("Sleep failed!");
+                            }
                             RF_setStatus(RF_STATUS_SLEEP);
                         }
                     }
@@ -797,7 +935,7 @@ RET_VALUE   RF_commandProcessing(uint8_t* _data, uint32_t _length)
                             RF_setStatus(RF_STATUS_READY);
                         }
                     }
-                break;
+                    break;
 
                 default:
                     DEBUG("Receive Data : %d\n", io_frame->length);
@@ -826,7 +964,21 @@ uint32_t    RF_getTimeout(void)
 
 bool        RF_setStatus(RF_STATUS _status)
 {
-    status_ = _status;
+    if (status_ != _status)
+    {
+        if (status_ == RF_STATUS_READY)
+        {
+            osTimerStop(timerReadyTimeoutHandler);
+        }
+        DEBUG("Status changed : %s -> %s", RF_getStatusString(status_), RF_getStatusString(_status));
+        status_ = _status;
+
+        if (status_ == RF_STATUS_READY)
+        {
+            osTimerStart(timerReadyTimeoutHandler, config_.rf.readyTimeout);
+        }
+
+    }
 
     return  true;
 }
@@ -1032,6 +1184,25 @@ RET_VALUE   RF_sendPing(uint16_t _destAddress, uint32_t _timeout)
     return  RF_send(RF_IO_CMD_TX_DATA, _destAddress, RF_REQ_PING, NULL, 0, RF_OPTIONS_ACK, _timeout);
 }
 
+RET_VALUE   RF_sendKeepAlive(uint16_t _destAddress, uint32_t _batt, uint32_t _timeout)
+{
+    RF_KEEP_ALIVE   params;
+
+    ((uint8_t*)&params.battery)[0] = ((uint8_t*)&_batt)[3];
+    ((uint8_t*)&params.battery)[1] = ((uint8_t*)&_batt)[2];
+    ((uint8_t*)&params.battery)[2] = ((uint8_t*)&_batt)[1];
+    ((uint8_t*)&params.battery)[3] = ((uint8_t*)&_batt)[0];
+
+    return  RF_send(RF_IO_CMD_TX_DATA, _destAddress, RF_MSG_KEEPALIVE, (uint8_t *)&params, sizeof(params), RF_OPTIONS_ACK, _timeout);
+}
+
+RET_VALUE   RF_sendRadioStart(uint16_t _destAddress, char* _deviceId, uint32_t _timeout)
+{
+    RF_send(RF_IO_CMD_RADIO_START, 0, 0, NULL, 0, RF_OPTIONS_ACK, _timeout);
+
+    return  RET_OK;
+}
+
 RET_VALUE   RF_sendContract(uint16_t _destAddress, char* _deviceId, uint8_t _channelCount, uint32_t _timeout)
 {
     RF_REQUEST_CONTRACT contract;
@@ -1039,48 +1210,49 @@ RET_VALUE   RF_sendContract(uint16_t _destAddress, char* _deviceId, uint8_t _cha
     strncpy(contract.deviceId, _deviceId, TARGET_DEVICE_ID_LEN);
     contract.channelCuont = _channelCount;
 
-    DEBUG("RF_sendContract : %s, %d", _deviceId, _channelCount);
+    DEBUG("[NOTI] Contract request : %s, %d", _deviceId, _channelCount);
     return  RF_send(RF_IO_CMD_TX_DATA, _destAddress, RF_REQ_CONTRACT, (uint8_t *)&contract, sizeof(contract), RF_OPTIONS_ACK, _timeout);
 }
 
 RET_VALUE   RF_sendMotionDetectionStart(uint16_t _destAddress, uint32_t _timeout)
 {
-    DEBUG("RF_sendMotionDetectionStart");
+    DEBUG("[NOTI] Motion detection started");
     return  RF_send(RF_IO_CMD_TX_DATA, _destAddress, RF_MSG_MOTION_DETECTION_STARTED, NULL, 0, RF_OPTIONS_ACK, _timeout);
 }
 
 RET_VALUE   RF_sendMotionDetectionStop(uint16_t _destAddress, uint32_t _timeout)
 {
-    DEBUG("RF_sendMotionDetectionStop");
+    DEBUG("[NOTI] Motion detection stopped");
     return  RF_send(RF_IO_CMD_TX_DATA, _destAddress, RF_MSG_MOTION_DETECTION_STOPPED, NULL, 0, RF_OPTIONS_ACK, _timeout);
 }
 
 RET_VALUE   RF_sendMotionDetected(uint16_t _destAddress, uint32_t _timeout)
 {
+    DEBUG("[NOTI] Motion Detected");
     return  RF_send(RF_IO_CMD_TX_DATA, _destAddress, RF_MSG_MOTION_DETECTED, NULL, 0, RF_OPTIONS_ACK, _timeout);
 }
 
 RET_VALUE   RF_sendScanStart(uint16_t _destAddress, uint32_t _timeout)
 {
-    DEBUG("RF_sendScanStart");
+    DEBUG("[NOTI] Scan started");
     return  RF_send(RF_IO_CMD_TX_DATA, _destAddress, RF_MSG_SCAN_STARTED, NULL, 0, RF_OPTIONS_ACK, _timeout);
 }
 
 RET_VALUE   RF_sendScanStop(uint16_t _destAddress, uint32_t _timeout)
 {
-    DEBUG("RF_sendScanStop");
+    DEBUG("[NOTI] Scan stopped");
     return  RF_send(RF_IO_CMD_TX_DATA, _destAddress, RF_MSG_SCAN_STOPPED, NULL, 0, RF_OPTIONS_ACK, _timeout);
 }
 
 RET_VALUE   RF_sendTransferStart(uint16_t _destAddress, uint32_t _timeout)
 {
-    DEBUG("RF_sendTransferStart");
+    DEBUG("[NOTI] Data transfer started");
     return  RF_send(RF_IO_CMD_TX_DATA, _destAddress, RF_MSG_TRANS_STARTED, NULL, 0, RF_OPTIONS_ACK, _timeout);
 }
 
 RET_VALUE   RF_sendTransferStop(uint16_t _destAddress, uint32_t _timeout)
 {
-    DEBUG("RF_sendTransferStop");
+    DEBUG("[NOTI] Data transfer stopped");
     return  RF_send(RF_IO_CMD_TX_DATA, _destAddress, RF_MSG_TRANS_STOPPED, NULL, 0, RF_OPTIONS_ACK, _timeout);
 }
 
@@ -1148,14 +1320,14 @@ RET_VALUE   RF_clearStatistics(void)
 
 RET_VALUE   RF_motionDetectionStart(uint32_t _timeout)
 {
-    if (status_ == RF_STATUS_READY)
+//    if (status_ == RF_STATUS_READY)
     {
         RF_IO_FRAME    frame = {    .cmd = RF_IO_REQ_MOTION_DETECT_START, .length = 0, .crc = 0  };
 
         return  RF_sendFrame(&frame, _timeout);
     }
 
-    return  RET_ERROR;
+    //return  RET_ERROR;
 }
 
 RET_VALUE   RF_motionDetectionStop(uint32_t _timeout)
@@ -1253,6 +1425,10 @@ RET_VALUE   RF_stopTransferScanData()
     return  RET_OK;
 }
 
+bool    RF_isRunTransferScanData()
+{
+    return  doing_transfer;
+}
 
 void    RF_transferScanData(void const * argument)
 {
@@ -1267,7 +1443,7 @@ void    RF_transferScanData(void const * argument)
 
             if (i == 0)
             {
-                uint32_t    time = transfer_index * config_.rf.nop;
+                uint32_t    time = transfer_index * config_.scan.interval;
                 buffer[length++] = (time >> 24) & 0xFF;
                 buffer[length++] = (time >> 16) & 0xFF;
                 buffer[length++] = (time >>  8) & 0xFF;
@@ -1291,6 +1467,20 @@ void    RF_transferScanData(void const * argument)
             DEBUG("Data send failed[%d/%d]\n", transfer_index, SCAN_getCurrentLoop());
         }
     }
+    else
+    {
+        RF_stopTransferScanData();
+    }
+}
+
+
+void    RF_transferKeepAlive(void const * argument)
+{
+    uint16_t    cell = 0;
+
+    MAX17043_getCell(&cell);
+
+    RF_sendKeepAlive(0, cell, 100);
 }
 
 uint32_t    RF_getKeepAlive()
@@ -1317,6 +1507,18 @@ RET_VALUE   RF_setTransferInterval(uint32_t _interval)
     return  RET_OK;
 }
 
+uint32_t    RF_getReadyTimeout()
+{
+    return  config_.rf.readyTimeout;
+}
+
+RET_VALUE   RF_setReadyTimeout(uint32_t _timeout)
+{
+    config_.rf.readyTimeout = _timeout;
+
+    return  RET_OK;
+}
+
 uint32_t    RF_getTransferNOP()
 {
     return  config_.rf.nop;
@@ -1331,6 +1533,12 @@ RET_VALUE   RF_setTransferNOP(uint32_t _nop)
     }
 
     return  RET_INVALID_ARGUMENT;
+}
+
+void    RF_readyTimeout(void const * argument)
+{
+    RF_motionDetectionStart(0);
+    RF_setStatus(RF_STATUS_MOTION_DETECTION);
 }
 
 RET_VALUE   RF_lockAPI(uint32_t _timeout)

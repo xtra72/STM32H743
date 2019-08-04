@@ -1224,6 +1224,9 @@
                         <name>$PROJ_DIR$\..\..\Common\App\shell\shell_config.c</name>
                     </file>
                     <file>
+                        <name>$PROJ_DIR$\..\..\Common\App\shell\shell_i2c.c</name>
+                    </file>
+                    <file>
                         <name>$PROJ_DIR$\..\..\Common\App\shell\shell_monitor.c</name>
                     </file>
                     <file>
@@ -1337,6 +1340,12 @@
                 </file>
                 <file>
                     <name>$PROJ_DIR$\..\..\Common\Lib\gpio.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\Common\Lib\i2c.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\Common\Lib\max17043.c</name>
                 </file>
                 <file>
                     <name>$PROJ_DIR$\..\..\Common\Lib\monitor.c</name>

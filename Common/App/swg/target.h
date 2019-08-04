@@ -44,18 +44,20 @@
 #define TARGET_SCAN_COUNT               (30 * 60 * 500)
 
 #define TARGET_RF_SHORT_ADDRESS         2
-#define TERGET_RF_FREQUENCY             91500000
+#define TERGET_RF_FREQUENCY             920000000
 #define TARGET_RF_POWER                 18
 #define TARGET_RF_BITRATE               4800
 #define TARGET_RF_PAYLOAD_MAX           60
 #define TARGET_RF_TIMEOUT               1000
 
-#define TARGET_RF_KEEP_ALIVE            1000
+#define TARGET_RF_KEEP_ALIVE            60
 
 #define TARGET_RF_TRANSFER_INTERVAL     20
 #define TARGET_RF_TRANSFER_NOP          3
 #define TARGET_RF_TRANSFER_NOP_MIN      1
 #define TARGET_RF_TRANSFER_NOP_MAX      3
+
+#define TARGET_RF_READY_TIMEOUT         1800
 
 #include "main.h"
 

@@ -83,6 +83,10 @@ void Error_Handler(void);
 #define RF_MOSI_GPIO_Port GPIOJ
 #define RF_SLAVE_READY_Pin GPIO_PIN_3
 #define RF_SLAVE_READY_GPIO_Port GPIOH
+#define I2C_SCL_Pin GPIO_PIN_10
+#define I2C_SCL_GPIO_Port GPIOB
+#define I2C_SDA_Pin GPIO_PIN_11
+#define I2C_SDA_GPIO_Port GPIOB
 #define AI_03_Pin GPIO_PIN_2
 #define AI_03_GPIO_Port GPIOC
 #define AI_04_Pin GPIO_PIN_3

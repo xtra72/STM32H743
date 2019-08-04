@@ -155,7 +155,17 @@ RET_VALUE SHELL_COMMAND_deviceId(char *argv[], uint32_t argc, struct _SHELL_COMM
 
 RET_VALUE   SHELL_COMMAND_sleep(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
 {
-    HAL_PWR_EnterSTANDBYMode();
+    if (argc == 2)
+    {
+        uint32_t    sleepTime = 0;
+        sleepTime = strtoul(argv[1], 0, 10);
+
+        SHELL_printf("Sleep Time : %d\n", sleepTime);
+        if (SYS_sleep(sleepTime) != RET_OK)
+        {
+            SHELL_printf("Sleep failed\n");
+        }
+    }
 
     return  RET_OK;
 }

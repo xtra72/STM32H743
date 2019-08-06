@@ -2,6 +2,7 @@
 #include "config.h"
 #include "shell.h"
 #include "utils.h"
+#include "wireguard.h"
 
 RET_VALUE SHELL_TRANS_help(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
 RET_VALUE SHELL_TRANS_interval(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
@@ -74,11 +75,11 @@ RET_VALUE SHELL_TRANS_interval(char *argv[], uint32_t argc, struct _SHELL_COMMAN
 {
     if (argc == 1)
     {
-        SHELL_printf("%d ms\n", RF_getTransferInterval());
+        SHELL_printf("%d ms\n", WG_getTransferInterval());
     }
     else if (argc == 2)
     {
-        uint32_t    old_value = RF_getTransferInterval();
+        uint32_t    old_value = WG_getTransferInterval();
         uint32_t    value;
 
         if (!strToUint32(argv[1], &value))
@@ -87,7 +88,7 @@ RET_VALUE SHELL_TRANS_interval(char *argv[], uint32_t argc, struct _SHELL_COMMAN
             return  RET_INVALID_ARGUMENT;
         }
 
-        if (RF_setTransferInterval(value) != RET_OK)
+        if (WG_setTransferInterval(value) != RET_OK)
         {
             SHELL_printf("Invalid argument!\n");
             return  RET_INVALID_ARGUMENT;

@@ -2,6 +2,7 @@
 #include "config.h"
 #include "shell.h"
 #include "rf.h"
+#include "wireguard.h"
 #include "utils.h"
 #include "shell_rf.h"
 
@@ -20,10 +21,6 @@ RET_VALUE   SHELL_RF_address(char *argv[], uint32_t argc, struct _SHELL_COMMAND 
 RET_VALUE   SHELL_RF_cmd(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
 RET_VALUE   SHELL_RF_statistics(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
 RET_VALUE   SHELL_RF_test(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
-RET_VALUE   SHELL_RF_keepalive(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
-RET_VALUE   SHELL_RF_interval(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
-RET_VALUE SHELL_RF_readyTimeout(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
-RET_VALUE   SHELL_RF_nop(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
 
 static const SHELL_COMMAND   commandSet_[] =
 {
@@ -73,26 +70,6 @@ static const SHELL_COMMAND   commandSet_[] =
         .shortHelp = "Address"
     },
     {
-        .name = "keepalive",
-        .function = SHELL_RF_keepalive,
-        .shortHelp = "Keep Alive"
-    },
-    {
-        .name = "interval",
-        .function = SHELL_RF_interval,
-        .shortHelp = "interval"
-    },
-    {
-        .name = "readytimeout",
-        .function = SHELL_RF_readyTimeout,
-        .shortHelp = "Ready Timeout"
-    },
-    {
-        .name = "nop",
-        .function = SHELL_RF_nop,
-        .shortHelp = "Number of packets in one transmission"
-    },
-    {
         .name = "cmd",
         .function = SHELL_RF_cmd,
         .shortHelp = "Command"
@@ -117,7 +94,7 @@ RET_VALUE   SHELL_RF(char *argv[], uint32_t argc, struct _SHELL_COMMAND  const* 
     RET_VALUE   ret = RET_INVALID_COMMAND;
     if (argc == 1)
     {
-        SHELL_RF_info();
+        ret = SHELL_RF_info();
     }
     else
     {
@@ -152,7 +129,6 @@ RET_VALUE SHELL_RF_help(char *argv[], uint32_t argc, struct _SHELL_COMMAND const
 
 RET_VALUE SHELL_RF_info(void)
 {
-    SHELL_printf("\n%s\n", "[ RF Module ]");
     SHELL_printf("%16s : %d\n", "Short Address", RF_getShortAddress());
     SHELL_printf("%16s : %d Hz\n", "Frequency", RF_getFrequency());
     SHELL_printf("%16s : %d dBm\n", "Power", RF_getPower());
@@ -188,31 +164,17 @@ RET_VALUE SHELL_RF_send(char *argv[], uint32_t argc, struct _SHELL_COMMAND const
 
     if (argc == 3)
     {
-        if (strcasecmp(argv[1], "scan") == 0)
-        {
-            if (strcasecmp(argv[2], "start") == 0)
-            {
-                RF_startTransferScanData();
-            }
-            else if (strcasecmp(argv[2], "stop") == 0)
-            {
-                RF_stopTransferScanData();
-            }
-        }
-        else
-        {
-            uint16_t    destAddress = 0;
-            uint8_t     buffer[64];
-            uint32_t    length;
+        uint16_t    destAddress = 0;
+        uint8_t     buffer[64];
+        uint32_t    length;
 
-            if (!strToHex16(argv[1], &destAddress) || !strToHexArray(argv[2], buffer, sizeof(buffer), &length))
-            {
-                SHELL_printf("Invalid arguments!\n");
-                return  RET_INVALID_ARGUMENT;
-            }
-
-            RF_sendData(destAddress, buffer, length, 0, 5000);
+        if (!strToHex16(argv[1], &destAddress) || !strToHexArray(argv[2], buffer, sizeof(buffer), &length))
+        {
+            SHELL_printf("Invalid arguments!\n");
+            return  RET_INVALID_ARGUMENT;
         }
+
+        RF_sendData(destAddress, buffer, length, 0, 5000);
     }
 
     return  RET_OK;
@@ -222,7 +184,7 @@ RET_VALUE SHELL_RF_motion(char *argv[], uint32_t argc, struct _SHELL_COMMAND con
 {
     if (argc == 1)
     {
-        if (RF_getStatus() == RF_STATUS_READY)
+        if (WG_getStatus() == WG_STATUS_READY)
         {
             SHELL_printf("Motion detection is in progress.\n");
         }
@@ -501,120 +463,3 @@ RET_VALUE SHELL_RF_test(char *argv[], uint32_t argc, struct _SHELL_COMMAND const
 
     return  RET_OK;
 }
-
-RET_VALUE SHELL_RF_keepalive(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
-{
-    if (argc == 1)
-    {
-        SHELL_printf("%d ms\n", RF_getKeepAlive());
-    }
-    else if (argc == 2)
-    {
-        uint32_t    old_value = RF_getKeepAlive();
-        uint32_t    value;
-
-        if (!strToUint32(argv[1], &value))
-        {
-            SHELL_printf("Invalid argument!\n");
-            return  RET_INVALID_ARGUMENT;
-        }
-
-        if (RF_setKeepAlive(value) != RET_OK)
-        {
-            SHELL_printf("Invalid argument!\n");
-            return  RET_INVALID_ARGUMENT;
-        }
-
-        SHELL_printf("Keep Alive changed : %d ms -> %d ms\n", old_value, value);
-    }
-
-    return  RET_OK;
-}
-
-RET_VALUE SHELL_RF_interval(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
-{
-    if (argc == 1)
-    {
-        SHELL_printf("%d ms\n", RF_getTransferInterval());
-    }
-    else if (argc == 2)
-    {
-        uint32_t    old_value = RF_getTransferInterval();
-        uint32_t    value;
-
-        if (!strToUint32(argv[1], &value))
-        {
-            SHELL_printf("Invalid argument!\n");
-            return  RET_INVALID_ARGUMENT;
-        }
-
-        if (RF_setTransferInterval(value) != RET_OK)
-        {
-            SHELL_printf("Invalid argument!\n");
-            return  RET_INVALID_ARGUMENT;
-        }
-
-        SHELL_printf("Transfer interval changed : %d ms -> %d ms\n", old_value, value);
-    }
-
-    return  RET_OK;
-}
-
-RET_VALUE SHELL_RF_readyTimeout(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
-{
-    if (argc == 1)
-    {
-        SHELL_printf("%d s\n", RF_getReadyTimeout());
-    }
-    else if (argc == 2)
-    {
-        uint32_t    old_value = RF_getReadyTimeout();
-        uint32_t    value;
-
-        if (!strToUint32(argv[1], &value))
-        {
-            SHELL_printf("Invalid argument!\n");
-            return  RET_INVALID_ARGUMENT;
-        }
-
-        if (RF_setReadyTimeout(value) != RET_OK)
-        {
-            SHELL_printf("Invalid argument!\n");
-            return  RET_INVALID_ARGUMENT;
-        }
-
-        SHELL_printf("Ready Timeout changed : %d s -> %d s\n", old_value, value);
-    }
-
-    return  RET_OK;
-}
-
-RET_VALUE SHELL_RF_nop(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
-{
-    if (argc == 1)
-    {
-        SHELL_printf("%d\n", RF_getTransferNOP());
-    }
-    else
-    {
-        uint32_t    old_value = RF_getTransferNOP();
-        uint32_t    value;
-
-        if (!strToUint32(argv[1], &value))
-        {
-            SHELL_printf("Invalid argument!\n");
-            return  RET_INVALID_ARGUMENT;
-        }
-
-        if (RF_setTransferNOP(value) != RET_OK)
-        {
-            SHELL_printf("Invalid argument!\n");
-            return  RET_INVALID_ARGUMENT;
-        }
-
-        SHELL_printf("Transfer NOP changed : %d ms -> %d ms\n", old_value, value);
-    }
-
-    return  RET_OK;
-}
-

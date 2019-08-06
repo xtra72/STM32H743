@@ -1052,15 +1052,6 @@
             <group>
                 <name>App</name>
                 <group>
-                    <name>rf</name>
-                    <file>
-                        <name>$PROJ_DIR$\..\..\Common\App\rf\rf.c</name>
-                    </file>
-                    <file>
-                        <name>$PROJ_DIR$\..\..\Common\App\rf\rf.h</name>
-                    </file>
-                </group>
-                <group>
                     <name>shell</name>
                     <file>
                         <name>$PROJ_DIR$\..\..\Common\App\shell\shell.c</name>
@@ -1112,13 +1103,19 @@
                     <name>$PROJ_DIR$\..\..\Common\App\config.h</name>
                 </file>
                 <file>
+                    <name>$PROJ_DIR$\..\..\Common\App\rf.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\Common\App\rf.h</name>
+                </file>
+                <file>
                     <name>$PROJ_DIR$\..\..\Common\App\swg\target.h</name>
                 </file>
                 <file>
-                    <name>$PROJ_DIR$\..\..\Common\App\task_main.c</name>
+                    <name>$PROJ_DIR$\..\..\Common\App\wireguard.c</name>
                 </file>
                 <file>
-                    <name>$PROJ_DIR$\..\..\Common\App\task_main.h</name>
+                    <name>$PROJ_DIR$\..\..\Common\App\wireguard.h</name>
                 </file>
             </group>
             <group>
@@ -1191,6 +1188,9 @@
                 </file>
                 <file>
                     <name>$PROJ_DIR$\..\..\Common\Lib\crc16.h</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\Common\Lib\flash.c</name>
                 </file>
                 <file>
                     <name>$PROJ_DIR$\..\..\Common\Lib\gpio.c</name>

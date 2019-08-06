@@ -1,6 +1,10 @@
 #include "target.h"
 #include "config.h"
 #include "crc16.h"
+#include "flash.h"
+
+#define __MODULE_NAME__     "CONFIG"
+#include "trace.h"
 
 #ifndef TARGET_FLASH_CONFIG_START_ADDR
 #define FLASH_CONFIG_START_ADDR 0x08030000  /* Start @ of user Flash area */
@@ -58,6 +62,10 @@ const CONFIG  defaultConfig =
         },
         .dataCount = TARGET_ADC_DATA_COUNT_MAX
     },
+    .keepAlive        = TARGET_KEEP_ALIVE,
+    .transferInterval = TARGET_TRANSFER_INTERVAL,
+    .readyTimeout     = TARGET_READY_TIMEOUT,
+    .nop              = TARGET_TRANSFER_NOP,
 #if SUPPORT_DRAM
     .sdram =
     {
@@ -81,12 +89,7 @@ const CONFIG  defaultConfig =
             .power = TARGET_RF_POWER,
             .maxPayloadLength = TARGET_RF_PAYLOAD_MAX,
             .timeout = TARGET_RF_TIMEOUT
-        },
-        .keepAlive        = TARGET_RF_KEEP_ALIVE,
-        .transferInterval = TARGET_RF_TRANSFER_INTERVAL,
-        .readyTimeout     = 60,
-        .nop              = TARGET_RF_TRANSFER_NOP
-
+        }
 
     },
     .shell =
@@ -183,6 +186,22 @@ RET_VALUE   CONFIG_save(CONFIG* config)
 
 RET_VALUE   CONFIG_saveAt(uint32_t index, CONFIG* config)
 {
+    RET_VALUE   ret;
+
+    if ((index % TARGET_FLASH_CONFIG_PER_SECTOR) == 0)
+    {
+        ret = FLASH_erase(TARGET_FLASH_CONFIG_START_ADDR + TARGET_FLASH_CONFIG_SECTOR_SIZE * (index / TARGET_FLASH_CONFIG_PER_SECTOR),
+                    TARGET_FLASH_CONFIG_START_ADDR + TARGET_FLASH_CONFIG_SECTOR_SIZE * (index / TARGET_FLASH_CONFIG_PER_SECTOR + 1) - 1);
+        if (ret != RET_OK)
+        {
+            DEBUG("Config save failed!\n");
+            return  ret;
+        }
+    }
+
+
+    ret = FLASH_write(TARGET_FLASH_CONFIG_START_ADDR + index * TARGET_FLASH_CONFIG_SIZE, (uint8_t*)config, TARGET_FLASH_CONFIG_SIZE);
+
     return  RET_OK;
 }
 

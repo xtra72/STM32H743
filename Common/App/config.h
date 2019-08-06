@@ -44,6 +44,11 @@ typedef struct
     char            password[CONFIG_PASSWORD_LEN + 1];
     char            deviceId[CONFIG_DEVICE_ID_LEN + 1];
 
+    uint32_t        transferInterval;
+    uint32_t        keepAlive;
+    uint32_t        readyTimeout;
+    uint32_t        nop;
+
     ADC_CONFIG      adc;
 #if SUPPORT_DRAM
     SDRAM_CONFIG    sdram;

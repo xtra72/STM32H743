@@ -15,10 +15,6 @@ typedef struct
 typedef struct
 {
     RF_CC1310_CONFIG    cc1310;
-    uint32_t            transferInterval;
-    uint32_t            keepAlive;
-    uint32_t            readyTimeout;
-    uint32_t            nop;
 }   RF_CONFIG;
 
 typedef struct
@@ -37,21 +33,6 @@ typedef struct
         uint32_t    errors;
     }   Tx;
 }   RF_STATISTICS;
-
-typedef enum
-{
-    RF_STATUS_STOPPED,
-    RF_STATUS_INIT,
-    RF_STATUS_INITIALIZING,
-    RF_STATUS_INIT_FINISHED,
-    RF_STATUS_WAITING_FOR_CONTRACT,
-    RF_STATUS_READY,
-    RF_STATUS_MOTION_DETECTION,
-    RF_STATUS_MOTION_DETECTED,
-    RF_STATUS_SCAN,
-    RF_STATUS_SLEEP,
-    RF_STATUS_MAX
-}   RF_STATUS;
 
 typedef struct
 {
@@ -280,6 +261,8 @@ RET_VALUE   RF_start(void);
 RET_VALUE   RF_stop(void);
 void        RF_reset(void);
 
+uint32_t    RF_getBufferSize(void);
+
 RET_VALUE   RF_setConfig(RF_CONFIG* _config);
 RET_VALUE   RF_getConfig(RF_CONFIG* _config);
 
@@ -296,10 +279,6 @@ int16_t     RF_getPower(void);
 
 RET_VALUE   RF_setMaxPayloadLength(uint32_t _maxPayloadLength);
 uint32_t    RF_getMaxPayloadLength(void);
-
-bool        RF_setStatus(RF_STATUS _status);
-RF_STATUS   RF_getStatus(void);
-const char* RF_getStatusString(RF_STATUS _status);
 
 RET_VALUE   RF_CC1310_writeConfig(uint32_t _timeout);
 RET_VALUE   RF_CC1310_readConfig(uint32_t _timeout);
@@ -343,18 +322,6 @@ RET_VALUE   RF_motionDetectionStop(uint32_t timeout);
 RET_VALUE   RF_startTransferScanData();
 RET_VALUE   RF_stopTransferScanData();
 bool        RF_isRunTransferScanData();
-
-uint32_t    RF_getKeepAlive();
-RET_VALUE   RF_setKeepAlive(uint32_t _interval);
-
-uint32_t    RF_getTransferInterval();
-RET_VALUE   RF_setTransferInterval(uint32_t _interval);
-
-uint32_t    RF_getReadyTimeout();
-RET_VALUE   RF_setReadyTimeout(uint32_t _interval);
-
-uint32_t    RF_getTransferNOP();
-RET_VALUE   RF_setTransferNOP(uint32_t _nop);
 
 RET_VALUE   RF_makeFrame(RF_IO_FRAME* _frame, uint8_t cmd, uint16_t _destAddress, uint8_t _port, uint8_t* _data, uint32_t _dataSize, uint8_t _options);
 

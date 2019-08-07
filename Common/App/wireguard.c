@@ -399,7 +399,7 @@ void WG_taskMain(void const * argument)
 
         case    WG_STATUS_INIT_FINISHED:
             {
-                RF_sendRadioStart(0, config_.deviceId, 10);
+                RF_sendRadioStart(0, &config_.rf, 10);
                 WG_setStatus(WG_STATUS_WAITING_FOR_CONTRACT);
             }
             break;
@@ -521,6 +521,12 @@ RET_VALUE   WG_commandProcessing(uint8_t* _data, uint32_t _length)
                 motionDetectedNotificationCount_ = 0;
                 WG_setStatus(WG_STATUS_MOTION_DETECTED);
             }
+        }
+        break;
+
+    case    RF_IO_NOTI_RADIO_STARTED:
+        {
+            DEBUG("Radio started!\n");
         }
         break;
 

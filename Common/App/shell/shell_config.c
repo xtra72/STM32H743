@@ -10,7 +10,6 @@ RET_VALUE SHELL_CONFIG_help(char *argv[], uint32_t argc, struct _SHELL_COMMAND c
 RET_VALUE SHELL_CONFIG_save(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
 RET_VALUE SHELL_CONFIG_load(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
 RET_VALUE SHELL_CONFIG_clean(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
-RET_VALUE SHELL_CONFIG_deviceId(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
 RET_VALUE SHELL_CONFIG_keepAlive(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
 RET_VALUE SHELL_CONFIG_interval(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
 RET_VALUE SHELL_CONFIG_readyTimeout(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
@@ -39,11 +38,6 @@ static const SHELL_COMMAND   commandSet_[] =
         .name = "clean",
         .function = SHELL_CONFIG_clean,
         .shortHelp = "Clean"
-    },
-    {
-        .name = "deviceid",
-        .function = SHELL_CONFIG_deviceId,
-        .shortHelp = "Device ID"
     },
     {
         .name = "keepalive",
@@ -156,32 +150,6 @@ RET_VALUE SHELL_CONFIG_clean(char *argv[], uint32_t argc, struct _SHELL_COMMAND 
     ret = CONFIG_clear();
 
     return  ret;
-}
-
-RET_VALUE SHELL_CONFIG_deviceId(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
-{
-    if (argc == 1)
-    {
-        SHELL_printf("%s\n", config_.deviceId);
-    }
-    else if (argc == 2)
-    {
-        if (strlen(argv[1]) > CONFIG_DEVICE_ID_LEN)
-        {
-            SHELL_printf("ID is too long : Max %d\n", CONFIG_DEVICE_ID_LEN);
-            return  RET_INVALID_ARGUMENT;
-        }
-
-        char    oldDeviceId[CONFIG_DEVICE_ID_LEN+1];
-        strcpy(oldDeviceId, config_.deviceId);
-
-        memset(config_.deviceId, 0, sizeof(config_.deviceId));
-        strcpy(config_.deviceId, argv[1]);
-
-        SHELL_printf("Device ID changed : %s -> %s\n", oldDeviceId, config_.deviceId);
-    }
-
-    return  RET_OK;
 }
 
 RET_VALUE SHELL_CONFIG_keepAlive(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)

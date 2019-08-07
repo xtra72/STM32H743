@@ -11,6 +11,7 @@ RET_VALUE SHELL_SCAN_stop(char *argv[], uint32_t argc, struct _SHELL_COMMAND con
 RET_VALUE SHELL_SCAN_statistics(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
 RET_VALUE SHELL_SCAN_interval(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
 RET_VALUE SHELL_SCAN_count(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
+RET_VALUE SHELL_SCAN_channel(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
 RET_VALUE SHELL_SCAN_data(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
 
 static const SHELL_COMMAND   commandSet_[] =
@@ -44,6 +45,11 @@ static const SHELL_COMMAND   commandSet_[] =
         .name = "count",
         .function = SHELL_SCAN_count,
         .shortHelp = "Count"
+    },
+    {
+        .name = "channel",
+        .function = SHELL_SCAN_channel,
+        .shortHelp = "Channel"
     },
     {
         .name = "statistics",
@@ -115,10 +121,11 @@ RET_VALUE SHELL_SCAN_help(char *argv[], uint32_t argc, struct _SHELL_COMMAND con
 
 RET_VALUE SHELL_SCAN_info(void)
 {
-    SHELL_printf("%16s : %s\n", "Round Status", SCAN_isRun()?"Run":"Stop");
+    SHELL_printf("%16s : %s\n", "Status", SCAN_isRun()?"Run":"Stop");
     SHELL_printf("%16s : %d ms\n", "Interval", SCAN_getInterval());
-    SHELL_printf("%16s : %d\n", "Current Count", SCAN_getCurrentLoop());
-    SHELL_printf("%16s : %d\n", "Max Count", SCAN_getMaxLoop());
+    SHELL_printf("%16s : %d\n", "Channel Count", ADC_CHANNEL_getCount());
+    SHELL_printf("%16s : %d\n", "Data Count", SCAN_getCurrentLoop());
+    SHELL_printf("%16s : %d\n", "Max Data Count", SCAN_getMaxLoop());
 
     return  RET_OK;
 }
@@ -210,6 +217,10 @@ RET_VALUE SHELL_SCAN_interval(char *argv[], uint32_t argc, struct _SHELL_COMMAND
         {
             SHELL_printf("Invalid interval.\n");
         }
+        else
+        {
+            SHELL_printf("Scan interval : %d ms\n", SCAN_getInterval());
+        }
     }
 
     return  RET_OK;
@@ -228,6 +239,29 @@ RET_VALUE SHELL_SCAN_count(char *argv[], uint32_t argc, struct _SHELL_COMMAND co
         if (!strToUint32(argv[1], &count) || !SCAN_setMaxLoop(count))
         {
             SHELL_printf("Invalid count.\n");
+        }
+    }
+
+    return  RET_OK;
+}
+
+RET_VALUE SHELL_SCAN_channel(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
+{
+    if (argc == 1)
+    {
+        SHELL_printf("%d\n", ADC_CHANNEL_getCount());
+    }
+    else if (argc == 2)
+    {
+        uint32_t    count;
+
+        if (!strToUint32(argv[1], &count) || !ADC_CHANNEL_setCount(count))
+        {
+            SHELL_printf("Invalid count.\n");
+        }
+        else
+        {
+            SHELL_printf("Channel count : %d\n", ADC_CHANNEL_getCount());
         }
     }
 

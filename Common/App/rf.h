@@ -10,11 +10,6 @@ typedef struct
     uint32_t    frequency;
     uint32_t    maxPayloadLength;
     uint32_t    timeout;
-}   RF_CC1310_CONFIG;
-
-typedef struct
-{
-    RF_CC1310_CONFIG    cc1310;
 }   RF_CONFIG;
 
 typedef struct
@@ -129,7 +124,8 @@ typedef struct
 #define RF_IO_CMD_TX_DATA           0x01
 #define RF_SPI_CMD_RX_DATA          0x02
 #define RF_IO_CMD_PING              0x03
-#define RF_IO_CMD_RADIO_START      0x04
+#define RF_IO_CMD_RADIO_START       0x04
+#define RF_IO_NOTI_RADIO_STARTED    0x05
 
 #define RF_SPI_CMD_REQUEST_GET_CONFIG       0x11
 #define RF_SPI_CMD_REQUEST_SET_CONFIG       0x12
@@ -291,7 +287,7 @@ RET_VALUE   RF_sendRequestDataCount(uint16_t _destAddress, uint32_t _timeout);
 RET_VALUE   RF_sendResponseDataCount(uint16_t _destAddress, uint32_t _count, uint32_t _timeout);
 RET_VALUE   RF_recvResponseDataCount(uint16_t* _srcAddress, uint32_t* _count, uint32_t _timeout);
 RET_VALUE   RF_sendRequestData(uint16_t _destAddress, uint32_t _offset, uint32_t _count, uint32_t _timeout);
-RET_VALUE   RF_sendRadioStart(uint16_t _destAddress, char* _deviceId, uint32_t _timeout);
+RET_VALUE   RF_sendRadioStart(uint16_t _destAddress, RF_CONFIG* _config, uint32_t _timeout);
 RET_VALUE   RF_sendMotionDetectionStart(uint16_t _destAddress, uint32_t _timeout);;
 RET_VALUE   RF_sendMotionDetectionStop(uint16_t _destAddress, uint32_t _timeout);
 RET_VALUE   RF_sendScanStart(uint16_t _destAddress, uint32_t _timeout);

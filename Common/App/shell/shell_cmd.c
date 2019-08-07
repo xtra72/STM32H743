@@ -135,18 +135,19 @@ RET_VALUE SHELL_COMMAND_deviceId(char *argv[], uint32_t argc, struct _SHELL_COMM
     }
     else if (argc == 3)
     {
-        if (strcasecmp(argv[1], "set") == 0)
+        if (strlen(argv[1]) > CONFIG_DEVICE_ID_LEN)
         {
-            if (strlen(argv[2]) < CONFIG_DEVICE_ID_LEN)
-            {
-                strcpy(config_.deviceId, argv[2]);
-                SHELL_printf("Device ID changed to %s\n", config_.deviceId);
-            }
-            else
-            {
-                SHELL_printf("Invalid device id\n");
-            }
+            SHELL_printf("ID is too long : Max %d\n", CONFIG_DEVICE_ID_LEN);
+            return  RET_INVALID_ARGUMENT;
         }
+
+        char    oldDeviceId[CONFIG_DEVICE_ID_LEN+1];
+        strcpy(oldDeviceId, config_.deviceId);
+
+        memset(config_.deviceId, 0, sizeof(config_.deviceId));
+        strcpy(config_.deviceId, argv[1]);
+
+        SHELL_printf("Device ID changed : %s -> %s\n", oldDeviceId, config_.deviceId);
     }
 
     return  RET_OK;

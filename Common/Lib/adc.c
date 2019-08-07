@@ -117,9 +117,16 @@ RET_VALUE   ADC_stop(void)
     return  RET_OK;
 }
 
+uint32_t    ADC_CHANNEL_setCount(uint32_t channelCount)
+{
+    config_.adc.channelCount = channelCount;
+
+    return  config_.adc.channelCount;
+}
+
 uint32_t    ADC_CHANNEL_getCount(void)
 {
-    return  channelCount;
+    return  config_.adc.channelCount;
 }
 
 RET_VALUE   ADC_CHANNEL_start(void)

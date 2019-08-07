@@ -82,15 +82,11 @@ const CONFIG  defaultConfig =
     },
     .rf =
     {
-        .cc1310 =
-        {
-            .shortAddress = TARGET_RF_SHORT_ADDRESS,
-            .frequency = TERGET_RF_FREQUENCY,
-            .power = TARGET_RF_POWER,
-            .maxPayloadLength = TARGET_RF_PAYLOAD_MAX,
-            .timeout = TARGET_RF_TIMEOUT
-        }
-
+        .shortAddress = TARGET_RF_SHORT_ADDRESS,
+        .frequency = TERGET_RF_FREQUENCY,
+        .power = TARGET_RF_POWER,
+        .maxPayloadLength = TARGET_RF_PAYLOAD_MAX,
+        .timeout = TARGET_RF_TIMEOUT
     },
     .shell =
     {
@@ -181,7 +177,8 @@ RET_VALUE   CONFIG_save(CONFIG* config)
         return  CONFIG_saveAt(0, config);
     }
 
-    return  CONFIG_saveAt((index + 1) % FLASH_CONFIG_SLOT_COUNT, config);
+    return  CONFIG_saveAt(0, config);
+    //return  CONFIG_saveAt((index + 1) % FLASH_CONFIG_SLOT_COUNT, config);
 }
 
 RET_VALUE   CONFIG_saveAt(uint32_t index, CONFIG* config)

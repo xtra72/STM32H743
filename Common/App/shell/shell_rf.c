@@ -18,6 +18,8 @@ RET_VALUE   SHELL_RF_send(char *argv[], uint32_t argc, struct _SHELL_COMMAND con
 RET_VALUE   SHELL_RF_recv(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
 RET_VALUE   SHELL_RF_config(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
 RET_VALUE   SHELL_RF_address(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
+RET_VALUE   SHELL_RF_frequency(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
+RET_VALUE   SHELL_RF_power(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
 RET_VALUE   SHELL_RF_cmd(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
 RET_VALUE   SHELL_RF_statistics(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
 RET_VALUE   SHELL_RF_test(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
@@ -68,6 +70,16 @@ static const SHELL_COMMAND   commandSet_[] =
         .name = "address",
         .function = SHELL_RF_address,
         .shortHelp = "Address"
+    },
+    {
+        .name = "frequency",
+        .function = SHELL_RF_frequency,
+        .shortHelp = "Frequency"
+    },
+    {
+        .name = "power",
+        .function = SHELL_RF_power,
+        .shortHelp = "Power"
     },
     {
         .name = "cmd",
@@ -288,7 +300,7 @@ RET_VALUE SHELL_RF_address(char *argv[], uint32_t argc, struct _SHELL_COMMAND co
     {
         uint16_t    value = 0;
 
-        if (!strToUint16(argv[2], &value))
+        if (!strToUint16(argv[1], &value))
         {
             SHELL_printf("Invalid argument!\n");
             return  RET_INVALID_ARGUMENT;
@@ -300,6 +312,70 @@ RET_VALUE SHELL_RF_address(char *argv[], uint32_t argc, struct _SHELL_COMMAND co
         }
 
         SHELL_printf("RF Short Address : %d\n", RF_getShortAddress());
+    }
+    else
+    {
+        SHELL_printf("Invalid argument!\n");
+         return  RET_INVALID_ARGUMENT;
+    }
+
+    return  RET_OK;
+}
+
+RET_VALUE SHELL_RF_frequency(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
+{
+    if (argc == 1)
+    {
+        SHELL_printf("%d\n", RF_getFrequency());
+    }
+    else if (argc == 2)
+    {
+        uint32_t    value = 0;
+
+        if (!strToUint32(argv[1], &value))
+        {
+            SHELL_printf("Invalid argument!\n");
+            return  RET_INVALID_ARGUMENT;
+        }
+
+        if (RF_setFrequency(value) != RET_OK)
+        {
+            SHELL_printf("Invalid argument!\n");
+        }
+
+        SHELL_printf("RF Frequency : %d\n", RF_getFrequency());
+    }
+    else
+    {
+        SHELL_printf("Invalid argument!\n");
+         return  RET_INVALID_ARGUMENT;
+    }
+
+    return  RET_OK;
+}
+
+RET_VALUE SHELL_RF_power(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
+{
+    if (argc == 1)
+    {
+        SHELL_printf("%d\n", RF_getPower());
+    }
+    else if (argc == 2)
+    {
+        uint32_t    value = 0;
+
+        if (!strToUint32(argv[1], &value))
+        {
+            SHELL_printf("Invalid argument!\n");
+            return  RET_INVALID_ARGUMENT;
+        }
+
+        if (RF_setPower(value) != RET_OK)
+        {
+            SHELL_printf("Invalid argument!\n");
+        }
+
+        SHELL_printf("RF Power : %d\n", RF_getPower());
     }
     else
     {

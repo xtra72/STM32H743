@@ -54,9 +54,9 @@ static  uint32_t            spiTimeout_ = 100;
 static  uint16_t            upCount_ = 0;
 static  uint8_t             state_ = RF_CC1310_STOP;
 static  QueueHandle_t       txQueue_ = NULL;
-static  RF_CC1310_CONFIG    resultSetCC1310Config_;
+static  RF_CONFIG    resultSetRFConfig_;
 static  RET_VALUE           retSetConfig_ = RET_TIMEOUT;
-static  RF_CC1310_CONFIG    resultGetCC1310Config_;
+static  RF_CONFIG    resultGetCC1310Config_;
 static  RET_VALUE           retGetConfig_= RET_TIMEOUT;
 
 static  RF_STATISTICS       statistics_ =
@@ -185,26 +185,26 @@ void RF_taskMain(void const * argument)
                                 case    RF_IO_REP_SET_CONFIG:
                                     {
                                         DEBUG("Receive setting Get response.\n");
-                                        if (rxFrame.length != sizeof(RF_CC1310_CONFIG))
+                                        if (rxFrame.length != sizeof(RF_CONFIG))
                                         {
                                             retSetConfig_ = RET_ERROR;
                                             break;
                                         }
                                         retSetConfig_ = RET_OK;
-                                        memcpy(&resultSetCC1310Config_, rxFrame.payload, sizeof(RF_CC1310_CONFIG));
+                                        memcpy(&resultSetRFConfig_, rxFrame.payload, sizeof(RF_CONFIG));
                                     }
                                     break;
 
                                 case    RF_IO_REP_GET_CONFIG:
                                     {
                                         DEBUG("Receive setting Set response.\n");
-                                        if (rxFrame.length != sizeof(RF_CC1310_CONFIG))
+                                        if (rxFrame.length != sizeof(RF_CONFIG))
                                         {
                                             retGetConfig_ = RET_ERROR;
                                             break;
                                         }
                                         retGetConfig_ = RET_OK;
-                                        memcpy(&resultGetCC1310Config_, rxFrame.payload, sizeof(RF_CC1310_CONFIG));
+                                        memcpy(&resultGetCC1310Config_, rxFrame.payload, sizeof(RF_CONFIG));
                                     }
                                     break;
 
@@ -282,7 +282,7 @@ RET_VALUE   RF_CC1310_readConfig(uint32_t _timeout)
     {
         if (retGetConfig_ == RET_OK)
         {
-            memcpy(&config_.rf.cc1310, &resultGetCC1310Config_, sizeof(RF_CC1310_CONFIG));
+            memcpy(&config_.rf, &resultGetCC1310Config_, sizeof(RF_CONFIG));
             break;
         }
         osDelay(1);
@@ -299,8 +299,8 @@ RET_VALUE   RF_CC1310_writeConfig(uint32_t _timeout)
     RF_IO_FRAME    frame;
 
     frame.cmd = RF_SPI_CMD_REQUEST_SET_CONFIG;
-    frame.length = sizeof(RF_CC1310_CONFIG);
-    memcpy(frame.payload, &config_.rf.cc1310, sizeof(RF_CC1310_CONFIG));
+    frame.length = sizeof(RF_CONFIG);
+    memcpy(frame.payload, &config_.rf, sizeof(RF_CONFIG));
     frame.crc = CRC16_calc(frame.payload, frame.length);
 
     retSetConfig_ = RET_TIMEOUT;
@@ -331,50 +331,50 @@ RET_VALUE   RF_CC1310_writeConfig(uint32_t _timeout)
 
 uint32_t    RF_getTimeout(void)
 {
-    return  config_.rf.cc1310.timeout;
+    return  config_.rf.timeout;
 }
 
 uint16_t    RF_getShortAddress(void)
 {
-    return  config_.rf.cc1310.shortAddress;
+    return  config_.rf.shortAddress;
 }
 
 RET_VALUE   RF_setShortAddress(uint16_t _shortAddress)
 {
-    config_.rf.cc1310.shortAddress = _shortAddress;
+    config_.rf.shortAddress = _shortAddress;
 
     return  RET_OK;
 }
 
 RET_VALUE   RF_setFrequency(uint32_t _frequency)
 {
-    config_.rf.cc1310.frequency = _frequency;
+    config_.rf.frequency = _frequency;
 
     return  RET_OK;
 }
 
 uint32_t    RF_getFrequency(void)
 {
-    return  config_.rf.cc1310.frequency;
+    return  config_.rf.frequency;
 }
 
 RET_VALUE   RF_setPower(int16_t _power)
 {
-    config_.rf.cc1310.power = _power;
+    config_.rf.power = _power;
 
     return  RET_OK;
 }
 
 int16_t    RF_getPower(void)
 {
-    return  config_.rf.cc1310.power;
+    return  config_.rf.power;
 }
 
 RET_VALUE   RF_setMaxPayloadLength(uint32_t _maxPayloadLength)
 {
     if (_maxPayloadLength < RF_PAYLOAD_SIZE_MAX)
     {
-        config_.rf.cc1310.maxPayloadLength = _maxPayloadLength;
+        config_.rf.maxPayloadLength = _maxPayloadLength;
 
         return  RET_OK;
     }
@@ -384,7 +384,7 @@ RET_VALUE   RF_setMaxPayloadLength(uint32_t _maxPayloadLength)
 
 uint32_t    RF_getMaxPayloadLength(void)
 {
-    return  config_.rf.cc1310.maxPayloadLength;
+    return  config_.rf.maxPayloadLength;
 }
 
 void    RF_reset(void)
@@ -398,9 +398,9 @@ void    RF_reset(void)
 
 RET_VALUE   RF_makeFrame(RF_IO_FRAME* _frame, uint8_t cmd, uint16_t _destAddress, uint8_t _port, uint8_t* _data, uint32_t _dataSize, uint8_t _options)
 {
-    if (config_.rf.cc1310.maxPayloadLength < _dataSize)
+    if (config_.rf.maxPayloadLength < _dataSize)
     {
-        DEBUG("Data is too long[%d < %d]\n", config_.rf.cc1310.maxPayloadLength, _dataSize);
+        DEBUG("Data is too long[%d < %d]\n", config_.rf.maxPayloadLength, _dataSize);
         return  RET_OUT_OF_RANGE;
     }
 
@@ -409,8 +409,8 @@ RET_VALUE   RF_makeFrame(RF_IO_FRAME* _frame, uint8_t cmd, uint16_t _destAddress
 
     _frame->payload[_frame->length++] = (_destAddress >> 8) & 0xFF;
     _frame->payload[_frame->length++] = (_destAddress     ) & 0xFF;
-    _frame->payload[_frame->length++] = (config_.rf.cc1310.shortAddress >> 8) & 0xFF;
-    _frame->payload[_frame->length++] = (config_.rf.cc1310.shortAddress     ) & 0xFF;
+    _frame->payload[_frame->length++] = (config_.rf.shortAddress >> 8) & 0xFF;
+    _frame->payload[_frame->length++] = (config_.rf.shortAddress     ) & 0xFF;
     _frame->payload[_frame->length++] = _port;
     _frame->payload[_frame->length++] = _options;
     _frame->payload[_frame->length++] = (upCount_     ) & 0xFF;
@@ -434,12 +434,12 @@ RET_VALUE   RF_send(uint8_t cmd, uint16_t _destAddress, uint8_t _port, uint8_t* 
 
     if (tickTimeout == 0)
     {
-        tickTimeout = config_.rf.cc1310.timeout  / portTICK_PERIOD_MS;
+        tickTimeout = config_.rf.timeout  / portTICK_PERIOD_MS;
     }
 
-    if (config_.rf.cc1310.maxPayloadLength < _dataSize)
+    if (config_.rf.maxPayloadLength < _dataSize)
     {
-        DEBUG("Data is too long[%d < %d]\n", config_.rf.cc1310.maxPayloadLength, _dataSize);
+        DEBUG("Data is too long[%d < %d]\n", config_.rf.maxPayloadLength, _dataSize);
         return  RET_OUT_OF_RANGE;
     }
 
@@ -470,8 +470,8 @@ RET_VALUE   RF_send(uint8_t cmd, uint16_t _destAddress, uint8_t _port, uint8_t* 
 
     frame.payload[frame.length++] = (_destAddress >> 8) & 0xFF;
     frame.payload[frame.length++] = (_destAddress     ) & 0xFF;
-    frame.payload[frame.length++] = (config_.rf.cc1310.shortAddress >> 8) & 0xFF;
-    frame.payload[frame.length++] = (config_.rf.cc1310.shortAddress     ) & 0xFF;
+    frame.payload[frame.length++] = (config_.rf.shortAddress >> 8) & 0xFF;
+    frame.payload[frame.length++] = (config_.rf.shortAddress     ) & 0xFF;
     frame.payload[frame.length++] = _port;
     frame.payload[frame.length++] = _options;
     frame.payload[frame.length++] = (upCount_     ) & 0xFF;
@@ -532,9 +532,9 @@ RET_VALUE   RF_sendKeepAlive(uint16_t _destAddress, uint32_t _batt, uint32_t _ti
     return  RF_send(RF_IO_CMD_TX_DATA, _destAddress, RF_MSG_KEEPALIVE, (uint8_t *)&params, sizeof(params), RF_OPTIONS_ACK, _timeout);
 }
 
-RET_VALUE   RF_sendRadioStart(uint16_t _destAddress, char* _deviceId, uint32_t _timeout)
+RET_VALUE   RF_sendRadioStart(uint16_t _destAddress, RF_CONFIG* _config, uint32_t _timeout)
 {
-    RF_send(RF_IO_CMD_RADIO_START, 0, 0, NULL, 0, RF_OPTIONS_ACK, _timeout);
+    RF_send(RF_IO_CMD_RADIO_START, 0, 0, (uint8_t*)_config, sizeof(RF_CONFIG), RF_OPTIONS_ACK, _timeout);
 
     return  RET_OK;
 }

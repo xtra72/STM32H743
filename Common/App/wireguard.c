@@ -16,6 +16,8 @@ static  void WG_taskMain(void const * argument);
 static  RET_VALUE   WG_commandProcessing(uint8_t* _data, uint32_t _length);
 
 void    TRACE_monitorCallback(void const * argument);
+void    WG_readyTimeoutCallback(void const* argument);
+
 RET_VALUE   SHELL_monitor(char *argv[], uint32_t argc, struct _SHELL_COMMAND  const* command);
 RET_VALUE   SHELL_adc(char *argv[], uint32_t argc, struct _SHELL_COMMAND  const* command);
 RET_VALUE   SHELL_sdram(char *argv[], uint32_t argc, struct _SHELL_COMMAND  const* command);
@@ -45,46 +47,52 @@ static const SHELL_COMMAND   shellCommands[] =
 {
     {
         .name       = "monitor",
+        .admin      = true,
         .function   = SHELL_monitor,
         .shortHelp  = "Monitor"
     },
     {
         .name       = "config",
+        .admin      = false,
         .function   = SHELL_config,
         .shortHelp  = "Config"
     },
     {
         .name       = "adc",
+        .admin      = true,
         .function   = SHELL_adc,
         .shortHelp  = "ADC"
     },
     {
         .name       = "rf",
+        .admin      = false,
         .function   = SHELL_RF,
         .shortHelp  = "RF"
     },
     {
         .name       = "spi",
+        .admin      = true,
         .function   = SHELL_spi,
         .shortHelp  = "SPI"
     },
     {
         .name       = "i2c",
+        .admin      = true,
         .function   = SHELL_i2c,
         .shortHelp  = "I2C"
     },
-#if SUPPORT_DRAM
     {
         .name       = "scan",
+        .admin      = false,
         .function   = SHELL_SCAN,
         .shortHelp  = "Scan"
     },
     {
         .name       = "sdram",
+        .admin      = true,
         .function   = SHELL_sdram,
         .shortHelp  = "SDRAM"
     }
-#endif
 };
 
 #if SUPPORT_COM
@@ -125,6 +133,12 @@ bool        WG_setStatus(WG_STATUS _status)
 {
     if (status_ != _status)
     {
+        if (timerReadyTimeoutHandler == 0)
+        {
+            osTimerDef(timerReadyTimeout, WG_readyTimeoutCallback);
+            timerReadyTimeoutHandler = osTimerCreate(osTimer(timerReadyTimeout), osTimerOnce, NULL);
+        }
+
         if (status_ == WG_STATUS_READY)
         {
             osTimerStop(timerReadyTimeoutHandler);
@@ -134,7 +148,8 @@ bool        WG_setStatus(WG_STATUS _status)
 
         if (status_ == WG_STATUS_READY)
         {
-            osTimerStart(timerReadyTimeoutHandler, config_.readyTimeout);
+            DEBUG("Set Ready Timeout : %d s", config_.readyTimeout);
+            osTimerStart(timerReadyTimeoutHandler, config_.readyTimeout * 1000);
         }
 
     }
@@ -985,3 +1000,8 @@ void    WG_TRANS_callback(void const * argument)
     }
 }
 
+void    WG_readyTimeoutCallback(void const* argument)
+{
+    RF_motionDetectionStart(0);
+    WG_setStatus(WG_STATUS_MOTION_DETECTION);
+}

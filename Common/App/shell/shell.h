@@ -30,6 +30,7 @@ typedef struct
 typedef struct _SHELL_COMMAND
 {
     char*       name;
+    bool        admin;
     RET_VALUE   (*function)(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
     char*       shortHelp;
 }   SHELL_COMMAND;
@@ -41,6 +42,9 @@ RET_VALUE   SHELL_addCommands(const SHELL_COMMAND   *commands, uint32_t count);
 
 RET_VALUE   SHELL_setConfig(SHELL_CONFIG* config);
 RET_VALUE   SHELL_getConfig(SHELL_CONFIG* config);
+
+bool        SHELL_getAdmin(void);
+RET_VALUE   SHELL_setAdmin(bool _enable);
 
 RET_VALUE   SHELL_start(void);
 RET_VALUE   SHELL_stop(void);

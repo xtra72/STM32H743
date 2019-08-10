@@ -10,16 +10,19 @@ static const SHELL_COMMAND   commandSet_[] =
 {
     {
         .name = "help",
+        .admin      = false,
         .function = SHELL_ADC_help,
         .shortHelp = "Help"
     },
     {
         .name = "start",
+        .admin      = true,
         .function = SHELL_ADC_start,
         .shortHelp = "Start"
     },
     {
         .name = "stop",
+        .admin      = true,
         .function = SHELL_ADC_stop,
         .shortHelp = "Stop"
     },
@@ -42,7 +45,7 @@ RET_VALUE   SHELL_adc(char *argv[], uint32_t argc, struct _SHELL_COMMAND  const*
         SHELL_COMMAND const*   subcommand = commandSet_;
         while(subcommand->name != NULL)
         {
-            if (strcasecmp(subcommand->name, argv[1]) == 0)
+            if ((strcasecmp(subcommand->name, argv[1]) == 0) && (SHELL_getAdmin() || !subcommand->admin))
             {
                 ret = subcommand->function(&argv[1], argc - 1, subcommand);
                 break;
@@ -60,7 +63,10 @@ RET_VALUE SHELL_ADC_help(char *argv[], uint32_t argc, struct _SHELL_COMMAND cons
     SHELL_COMMAND const*   subcommand = commandSet_;
     while(subcommand->name != NULL)
     {
-        SHELL_printf("%-8s : %s\n", subcommand->name, subcommand->shortHelp, subcommand);
+        if (SHELL_getAdmin() || !subcommand->admin)
+        {
+            SHELL_printf("%-16s : %s\n", subcommand->name, subcommand->shortHelp, subcommand);
+        }
 
         subcommand++;
     }

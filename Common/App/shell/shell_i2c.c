@@ -17,31 +17,37 @@ static const SHELL_COMMAND   commandSet_[] =
 {
     {
         .name = "help",
+        .admin      = true,
         .function = SHELL_I2C_help,
         .shortHelp = "Help"
     },
     {
         .name = "start",
+        .admin      = true,
         .function = SHELL_I2C_start,
         .shortHelp = "Start"
     },
     {
         .name = "stop",
+        .admin      = true,
         .function = SHELL_I2C_stop,
         .shortHelp = "Stop"
     },
     {
         .name = "read",
+        .admin      = true,
         .function = SHELL_I2C_read,
         .shortHelp = "Registers"
     },
     {
         .name = "write",
+        .admin      = true,
         .function = SHELL_I2C_write,
         .shortHelp = "Write"
     },
     {
         .name = "test",
+        .admin      = true,
         .function = SHELL_I2C_test,
         .shortHelp = "test"
     },
@@ -64,7 +70,7 @@ RET_VALUE   SHELL_i2c(char *argv[], uint32_t argc, struct _SHELL_COMMAND  const*
         SHELL_COMMAND const*   subcommand = commandSet_;
         while(subcommand->name != NULL)
         {
-            if (strcasecmp(subcommand->name, argv[1]) == 0)
+            if ((strcasecmp(subcommand->name, argv[1]) == 0) && (SHELL_getAdmin() || !subcommand->admin))
             {
                 ret = subcommand->function(&argv[1], argc - 1, subcommand);
                 break;
@@ -82,7 +88,10 @@ RET_VALUE SHELL_I2C_help(char *argv[], uint32_t argc, struct _SHELL_COMMAND cons
     SHELL_COMMAND const*   subcommand = commandSet_;
     while(subcommand->name != NULL)
     {
-        SHELL_printf("%-8s : %s\n", subcommand->name, subcommand->shortHelp, subcommand);
+        if (SHELL_getAdmin() || !subcommand->admin)
+        {
+            SHELL_printf("%-16s : %s\n", subcommand->name, subcommand->shortHelp, subcommand);
+        }
 
         subcommand++;
     }

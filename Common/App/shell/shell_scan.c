@@ -18,41 +18,49 @@ static const SHELL_COMMAND   commandSet_[] =
 {
     {
         .name = "help",
+        .admin      = false,
         .function = SHELL_SCAN_help,
         .shortHelp = "Help"
     },
     {
         .name = "start",
+        .admin      = true,
         .function = SHELL_SCAN_start,
         .shortHelp = "Start"
     },
     {
         .name = "stop",
+        .admin      = true,
         .function = SHELL_SCAN_stop,
         .shortHelp = "Stop"
     },
     {
         .name = "data",
+        .admin      = true,
         .function = SHELL_SCAN_data,
         .shortHelp = "Data"
     },
     {
         .name = "interval",
+        .admin      = false,
         .function = SHELL_SCAN_interval,
         .shortHelp = "Interval"
     },
     {
         .name = "count",
+        .admin      = false,
         .function = SHELL_SCAN_count,
         .shortHelp = "Count"
     },
     {
         .name = "channel",
+        .admin      = false,
         .function = SHELL_SCAN_channel,
         .shortHelp = "Channel"
     },
     {
         .name = "statistics",
+        .admin      = false,
         .function = SHELL_SCAN_statistics,
         .shortHelp = "Statistics"
     },
@@ -93,7 +101,7 @@ RET_VALUE   SHELL_SCAN(char *argv[], uint32_t argc, struct _SHELL_COMMAND  const
         SHELL_COMMAND const*   subcommand = commandSet_;
         while(subcommand->name != NULL)
         {
-            if (strcasecmp(subcommand->name, argv[1]) == 0)
+            if ((strcasecmp(subcommand->name, argv[1]) == 0) && (SHELL_getAdmin() || !subcommand->admin))
             {
                 ret = subcommand->function(&argv[1], argc - 1, subcommand);
                 break;
@@ -111,7 +119,10 @@ RET_VALUE SHELL_SCAN_help(char *argv[], uint32_t argc, struct _SHELL_COMMAND con
     SHELL_COMMAND const*   subcommand = commandSet_;
     while(subcommand->name != NULL)
     {
-        SHELL_printf("%-8s : %s\n", subcommand->name, subcommand->shortHelp, subcommand);
+        if (SHELL_getAdmin() || !subcommand->admin)
+        {
+            SHELL_printf("%-16s : %s\n", subcommand->name, subcommand->shortHelp, subcommand);
+        }
 
         subcommand++;
     }

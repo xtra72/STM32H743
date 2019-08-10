@@ -58,6 +58,8 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define AVDD_EN_Pin GPIO_PIN_5
+#define AVDD_EN_GPIO_Port GPIOK
 #define RF_RESET_Pin GPIO_PIN_10
 #define RF_RESET_GPIO_Port GPIOG
 #define MICRO_SD_DETECT_Pin GPIO_PIN_6

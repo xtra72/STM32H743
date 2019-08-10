@@ -28,71 +28,85 @@ static const SHELL_COMMAND   commandSet_[] =
 {
     {
         .name = "help",
+        .admin      = false,
         .function = SHELL_RF_help,
         .shortHelp = "Help"
     },
     {
         .name = "start",
+        .admin      = true,
         .function = SHELL_RF_start,
         .shortHelp = "Start"
     },
     {
         .name = "stop",
+        .admin      = true,
         .function = SHELL_RF_stop,
         .shortHelp = "Stop"
     },
     {
         .name = "reset",
+        .admin      = true,
         .function = SHELL_RF_reset,
         .shortHelp = "Reset"
     },
     {
         .name = "motion",
+        .admin      = true,
         .function = SHELL_RF_motion,
         .shortHelp = "motion <[start|stop]>"
     },
     {
         .name = "send",
+        .admin      = true,
         .function = SHELL_RF_send,
         .shortHelp = "send"
     },
     {
         .name = "recv",
+        .admin      = true,
         .function = SHELL_RF_recv,
         .shortHelp = "recv"
     },
     {
         .name = "config",
+        .admin      = false,
         .function = SHELL_RF_config,
         .shortHelp = "Configuration"
     },
     {
         .name = "address",
+        .admin      = false,
         .function = SHELL_RF_address,
         .shortHelp = "Address"
     },
     {
         .name = "frequency",
+        .admin      = false,
         .function = SHELL_RF_frequency,
         .shortHelp = "Frequency"
     },
     {
         .name = "power",
+        .admin      = false,
         .function = SHELL_RF_power,
         .shortHelp = "Power"
     },
     {
         .name = "cmd",
+        .admin      = true,
         .function = SHELL_RF_cmd,
         .shortHelp = "Command"
     },
     {
         .name = "statistics",
+        .admin      = false,
         .function = SHELL_RF_statistics,
         .shortHelp = "Statistics"
     },
     {
         .name = "test",
+        .admin      = true,
         .function = SHELL_RF_test,
         .shortHelp = "Test"
     },
@@ -113,7 +127,7 @@ RET_VALUE   SHELL_RF(char *argv[], uint32_t argc, struct _SHELL_COMMAND  const* 
         SHELL_COMMAND const*   subcommand = commandSet_;
         while(subcommand->name != NULL)
         {
-            if (strcasecmp(subcommand->name, argv[1]) == 0)
+            if ((strcasecmp(subcommand->name, argv[1]) == 0) && (SHELL_getAdmin() || !subcommand->admin))
             {
                 ret = subcommand->function(&argv[1], argc - 1, subcommand);
                 break;
@@ -131,7 +145,10 @@ RET_VALUE SHELL_RF_help(char *argv[], uint32_t argc, struct _SHELL_COMMAND const
     SHELL_COMMAND const*   subcommand = commandSet_;
     while(subcommand->name != NULL)
     {
-        SHELL_printf("%-8s : %s\n", subcommand->name, subcommand->shortHelp, subcommand);
+        if (SHELL_getAdmin() || !subcommand->admin)
+        {
+            SHELL_printf("%-16s : %s\n", subcommand->name, subcommand->shortHelp, subcommand);
+        }
 
         subcommand++;
     }

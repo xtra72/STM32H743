@@ -5,15 +5,12 @@
 #include "shell_scan.h"
 #include "utils.h"
 #include "wireguard.h"
+#include "gpio.h"
 
 RET_VALUE SHELL_CONFIG_help(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
 RET_VALUE SHELL_CONFIG_save(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
 RET_VALUE SHELL_CONFIG_load(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
 RET_VALUE SHELL_CONFIG_clean(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
-RET_VALUE SHELL_CONFIG_keepAlive(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
-RET_VALUE SHELL_CONFIG_interval(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
-RET_VALUE SHELL_CONFIG_readyTimeout(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
-RET_VALUE SHELL_CONFIG_nop(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
 
 extern  CONFIG  config_;
 
@@ -21,43 +18,27 @@ static const SHELL_COMMAND   commandSet_[] =
 {
     {
         .name = "help",
+        .admin      = false,
         .function = SHELL_CONFIG_help,
         .shortHelp = "Help"
     },
     {
         .name = "save",
+        .admin      = false,
         .function = SHELL_CONFIG_save,
         .shortHelp = "Save"
     },
     {
         .name = "load",
+        .admin      = false,
         .function = SHELL_CONFIG_load,
         .shortHelp = "Load"
     },
     {
         .name = "clean",
+        .admin      = false,
         .function = SHELL_CONFIG_clean,
         .shortHelp = "Clean"
-    },
-    {
-        .name = "keepalive",
-        .function = SHELL_CONFIG_keepAlive,
-        .shortHelp = "Keep Alive"
-    },
-    {
-        .name = "interval",
-        .function = SHELL_CONFIG_interval,
-        .shortHelp = "interval"
-    },
-    {
-        .name = "readytimeout",
-        .function = SHELL_CONFIG_readyTimeout,
-        .shortHelp = "Ready Timeout"
-    },
-    {
-        .name = "nop",
-        .function = SHELL_CONFIG_nop,
-        .shortHelp = "Number of packets in one transmission"
     },
     {
         .name = NULL
@@ -76,6 +57,7 @@ RET_VALUE SHELL_config(char *argv[], uint32_t argc, struct _SHELL_COMMAND const*
         SHELL_printf("%16s : %d ms\n",  "Transfer Cycle", WG_getTransferInterval());
         SHELL_printf("%16s : %d\n",     "NOP", WG_getTransferNOP());
         SHELL_printf("%16s : %s\n",     "Status", WG_STATUS_getString(WG_getStatus()));
+        SHELL_printf("%16s : %s\n",     "AVDD", (GPIO_AVDD_isEnable()?"ON":"OFF"));
 
         SHELL_printf("\n%s\n", "[ RF ]");
         SHELL_RF_info();
@@ -94,7 +76,7 @@ RET_VALUE SHELL_config(char *argv[], uint32_t argc, struct _SHELL_COMMAND const*
         SHELL_COMMAND const*   subcommand = commandSet_;
         while(subcommand->name != NULL)
         {
-            if (strcasecmp(subcommand->name, argv[1]) == 0)
+            if ((strcasecmp(subcommand->name, argv[1]) == 0) && (SHELL_getAdmin() || !subcommand->admin))
             {
                 ret = subcommand->function(&argv[1], argc - 1, subcommand);
                 break;
@@ -113,7 +95,10 @@ RET_VALUE SHELL_CONFIG_help(char *argv[], uint32_t argc, struct _SHELL_COMMAND c
     SHELL_COMMAND const*   subcommand = commandSet_;
     while(subcommand->name != NULL)
     {
-        SHELL_printf("%-8s : %s\n", subcommand->name, subcommand->shortHelp, subcommand);
+        if (SHELL_getAdmin() || !subcommand->admin)
+        {
+            SHELL_printf("%-16s : %s\n", subcommand->name, subcommand->shortHelp, subcommand);
+        }
 
         subcommand++;
     }
@@ -150,121 +135,5 @@ RET_VALUE SHELL_CONFIG_clean(char *argv[], uint32_t argc, struct _SHELL_COMMAND 
     ret = CONFIG_clear();
 
     return  ret;
-}
-
-RET_VALUE SHELL_CONFIG_keepAlive(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
-{
-    if (argc == 1)
-    {
-        SHELL_printf("%d s\n", WG_KEEPALIVE_getPeriod());
-    }
-    else if (argc == 2)
-    {
-        uint32_t    old_value = WG_KEEPALIVE_getPeriod();
-        uint32_t    value;
-
-        if (!strToUint32(argv[1], &value))
-        {
-            SHELL_printf("Invalid argument!\n");
-            return  RET_INVALID_ARGUMENT;
-        }
-
-        if (WG_KEEPALIVE_setPeriod(value) != RET_OK)
-        {
-            SHELL_printf("Invalid argument!\n");
-            return  RET_INVALID_ARGUMENT;
-        }
-
-        SHELL_printf("Keep Alive changed : %d s -> %d s\n", old_value, value);
-    }
-
-    return  RET_OK;
-}
-
-RET_VALUE SHELL_CONFIG_interval(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
-{
-    if (argc == 1)
-    {
-        SHELL_printf("%d ms\n", WG_getTransferInterval());
-    }
-    else if (argc == 2)
-    {
-        uint32_t    old_value = WG_getTransferInterval();
-        uint32_t    value;
-
-        if (!strToUint32(argv[1], &value))
-        {
-            SHELL_printf("Invalid argument!\n");
-            return  RET_INVALID_ARGUMENT;
-        }
-
-        if (WG_setTransferInterval(value) != RET_OK)
-        {
-            SHELL_printf("Invalid argument!\n");
-            return  RET_INVALID_ARGUMENT;
-        }
-
-        SHELL_printf("Transfer interval changed : %d ms -> %d ms\n", old_value, value);
-    }
-
-    return  RET_OK;
-}
-
-RET_VALUE SHELL_CONFIG_readyTimeout(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
-{
-    if (argc == 1)
-    {
-        SHELL_printf("%d s\n", WG_getReadyTimeout());
-    }
-    else if (argc == 2)
-    {
-        uint32_t    old_value = WG_getReadyTimeout();
-        uint32_t    value;
-
-        if (!strToUint32(argv[1], &value))
-        {
-            SHELL_printf("Invalid argument!\n");
-            return  RET_INVALID_ARGUMENT;
-        }
-
-        if (WG_setReadyTimeout(value) != RET_OK)
-        {
-            SHELL_printf("Invalid argument!\n");
-            return  RET_INVALID_ARGUMENT;
-        }
-
-        SHELL_printf("Ready Timeout changed : %d s -> %d s\n", old_value, value);
-    }
-
-    return  RET_OK;
-}
-
-RET_VALUE SHELL_CONFIG_nop(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
-{
-    if (argc == 1)
-    {
-        SHELL_printf("%d\n", WG_getTransferNOP());
-    }
-    else
-    {
-        uint32_t    old_value = WG_getTransferNOP();
-        uint32_t    value;
-
-        if (!strToUint32(argv[1], &value))
-        {
-            SHELL_printf("Invalid argument!\n");
-            return  RET_INVALID_ARGUMENT;
-        }
-
-        if (WG_setTransferNOP(value) != RET_OK)
-        {
-            SHELL_printf("Invalid argument!\n");
-            return  RET_INVALID_ARGUMENT;
-        }
-
-        SHELL_printf("Transfer NOP changed : %d ms -> %d ms\n", old_value, value);
-    }
-
-    return  RET_OK;
 }
 

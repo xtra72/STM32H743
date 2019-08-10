@@ -28,7 +28,7 @@
 /*-----------------------------------------------------------*/
 static  SERIAL_HANDLE       serial_ = 0;
 static  osThreadId          threadId_ = NULL;
-
+static  bool                admin_ = false;
 /*
  * The task that implements the command console processing.
  */
@@ -36,6 +36,7 @@ static void SHELL_main( void const *paramaters );
 uint32_t    SHELL_parser(char* line, char* arguments[], uint32_t maxArgumentCount );
 char*       SHELL_token(char *line);
 RET_VALUE SHELL_COMMAND_help(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
+RET_VALUE SHELL_COMMAND_admin(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command);
 
 /*-----------------------------------------------------------*/
 
@@ -49,36 +50,73 @@ static const SHELL_COMMAND   defaultCommands_[] =
 {
     {
         .name       = "date",
+        .admin      = false,
         .function   = SHELL_COMMAND_date,
         .shortHelp  = "Date"
     },
     {
         .name       = "help",
+        .admin      = false,
         .function   = SHELL_COMMAND_help,
         .shortHelp  = "Help"
     },
     {
         .name       = "deviceid",
+        .admin      = false,
         .function   = SHELL_COMMAND_deviceId,
         .shortHelp  = "Device ID"
     },
     {
+        .name       = "keepalive",
+        .admin      = false,
+        .function   = SHELL_COMMAND_keepAlive,
+        .shortHelp  = "Keep Alive"
+    },
+    {
+        .name       = "interval",
+        .admin      = false,
+        .function   = SHELL_COMMAND_interval,
+        .shortHelp  = "interval"
+    },
+    {
+        .name       = "readytimeout",
+        .admin      = false,
+        .function   = SHELL_COMMAND_readyTimeout,
+        .shortHelp  = "Ready Timeout"
+    },
+    {
+        .name       = "nop",
+        .admin      = true,
+        .function   = SHELL_COMMAND_nop,
+        .shortHelp  = "Number of packets in one transmission"
+    },
+    {
         .name       = "sleep",
+        .admin      = true,
         .function   = SHELL_COMMAND_sleep,
         .shortHelp  = "Sleep"
     },
     {
+        .name       = "admin",
+        .admin      = false,
+        .function   = SHELL_COMMAND_admin,
+        .shortHelp  = "Admin Mode"
+    },
+    {
         .name       = "trace",
+        .admin      = true,
         .function   = SHELL_COMMAND_trace,
         .shortHelp  = "Trace command set"
     },
     {
         .name       = "reset",
+        .admin      = false,
         .function   = SHELL_COMMAND_reset,
         .shortHelp  = "System Reset"
     },
     {
         .name       = "version",
+        .admin      = false,
         .function   = SHELL_COMMAND_getVersion,
         .shortHelp  = "Version"
     }
@@ -150,7 +188,10 @@ RET_VALUE SHELL_COMMAND_help(char *argv[], uint32_t argc, struct _SHELL_COMMAND 
     {
         for(i = 0 ; i < commandCount ; i++)
         {
-            SHELL_printf("%-8s : %s\n", commands_[i].name, commands_[i].shortHelp,  &commands_[i]);
+            if (SHELL_getAdmin() || !commands_[i].admin)
+            {
+                SHELL_printf("%-16s : %s\n", commands_[i].name, commands_[i].shortHelp, &commands_[i]);
+            }
         }
 
         ret = RET_OK;
@@ -163,7 +204,7 @@ RET_VALUE SHELL_COMMAND_help(char *argv[], uint32_t argc, struct _SHELL_COMMAND 
 
             for(j = 0 ; j < commandCount ; j++)
             {
-                if (strcasecmp(argv[i], commands_[j].name) == 0)
+                if ((strcasecmp(argv[i], commands_[j].name) == 0) && (SHELL_getAdmin() || !commands_[j].admin))
                 {
                     char*   _argv[2];
                     _argv[0] = argv[i];
@@ -507,3 +548,49 @@ RET_VALUE   SHELL_dump(uint8_t *pBuffer, uint32_t ulLen)
     return  RET_OK;
 }
 
+bool        SHELL_getAdmin(void)
+{
+    return  admin_;
+}
+RET_VALUE   SHELL_setAdmin(bool _enable)
+{
+    admin_ = _enable;
+
+    return  RET_OK;
+}
+
+
+
+RET_VALUE SHELL_COMMAND_admin(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
+{
+    RET_VALUE   ret = RET_INVALID_ARGUMENT;
+
+    switch(argc)
+    {
+    case    1:
+        {
+            SHELL_printf("%16s : %s\n", "Admin", SHELL_getAdmin()?"ON":"OFF");
+            ret = RET_OK;
+        }
+        break;
+
+    case    2:
+        {
+            if (strcasecmp(argv[1], "on") == 0)
+            {
+                SHELL_setAdmin(true);
+                SHELL_printf("Admin mode ON\n");
+                ret = RET_OK;
+            }
+            else if (strcasecmp(argv[1], "off") == 0)
+            {
+                SHELL_setAdmin(false);
+                SHELL_printf("Admin mode OFF\n");
+                ret = RET_OK;
+            }
+        }
+        break;
+    }
+
+    return  ret;
+}

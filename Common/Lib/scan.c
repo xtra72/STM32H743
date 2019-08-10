@@ -1,6 +1,7 @@
 #include "target.h"
 #include "config.h"
 #include "adc.h"
+#include "gpio.h"
 
 #if SUPPORT_DRAM
 
@@ -67,6 +68,10 @@ RET_VALUE   SCAN_start(void)
         return  RET_ERROR;
     }
 
+    DEBUG("AVDD ON!");
+    GPIO_AVDD_enable();
+    osDelay(1000);
+
     ADC_CHANNEL_start();
     TIME2   start_time;
     TIME2_get(&start_time);
@@ -92,8 +97,11 @@ RET_VALUE   SCAN_stop()
     if (timerLoopFinishedHandler != 0)
     {
         osTimerStop(timerLoopFinishedHandler);
+        DEBUG("Scan stopped!\n");
     }
-   DEBUG("Scan stopped!\n");
+
+    GPIO_AVDD_disable();
+    DEBUG("AVDD OFF!");
 
     return  RET_OK;
 }

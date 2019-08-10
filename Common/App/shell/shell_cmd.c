@@ -2,6 +2,8 @@
 #include "system.h"
 #include "config.h"
 #include "shell.h"
+#include "wireguard.h"
+#include "utils.h"
 
 extern  CONFIG  config_;
 
@@ -153,6 +155,122 @@ RET_VALUE SHELL_COMMAND_deviceId(char *argv[], uint32_t argc, struct _SHELL_COMM
     return  RET_OK;
 }
 
+
+RET_VALUE SHELL_COMMAND_keepAlive(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
+{
+    if (argc == 1)
+    {
+        SHELL_printf("%d s\n", WG_KEEPALIVE_getPeriod());
+    }
+    else if (argc == 2)
+    {
+        uint32_t    old_value = WG_KEEPALIVE_getPeriod();
+        uint32_t    value;
+
+        if (!strToUint32(argv[1], &value))
+        {
+            SHELL_printf("Invalid argument!\n");
+            return  RET_INVALID_ARGUMENT;
+        }
+
+        if (WG_KEEPALIVE_setPeriod(value) != RET_OK)
+        {
+            SHELL_printf("Invalid argument!\n");
+            return  RET_INVALID_ARGUMENT;
+        }
+
+        SHELL_printf("Keep Alive changed : %d s -> %d s\n", old_value, value);
+    }
+
+    return  RET_OK;
+}
+
+RET_VALUE SHELL_COMMAND_interval(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
+{
+    if (argc == 1)
+    {
+        SHELL_printf("%d ms\n", WG_getTransferInterval());
+    }
+    else if (argc == 2)
+    {
+        uint32_t    old_value = WG_getTransferInterval();
+        uint32_t    value;
+
+        if (!strToUint32(argv[1], &value))
+        {
+            SHELL_printf("Invalid argument!\n");
+            return  RET_INVALID_ARGUMENT;
+        }
+
+        if (WG_setTransferInterval(value) != RET_OK)
+        {
+            SHELL_printf("Invalid argument!\n");
+            return  RET_INVALID_ARGUMENT;
+        }
+
+        SHELL_printf("Transfer interval changed : %d ms -> %d ms\n", old_value, value);
+    }
+
+    return  RET_OK;
+}
+
+RET_VALUE SHELL_COMMAND_readyTimeout(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
+{
+    if (argc == 1)
+    {
+        SHELL_printf("%d s\n", WG_getReadyTimeout());
+    }
+    else if (argc == 2)
+    {
+        uint32_t    old_value = WG_getReadyTimeout();
+        uint32_t    value;
+
+        if (!strToUint32(argv[1], &value))
+        {
+            SHELL_printf("Invalid argument!\n");
+            return  RET_INVALID_ARGUMENT;
+        }
+
+        if (WG_setReadyTimeout(value) != RET_OK)
+        {
+            SHELL_printf("Invalid argument!\n");
+            return  RET_INVALID_ARGUMENT;
+        }
+
+        SHELL_printf("Ready Timeout changed : %d s -> %d s\n", old_value, value);
+    }
+
+    return  RET_OK;
+}
+
+RET_VALUE SHELL_COMMAND_nop(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
+{
+    if (argc == 1)
+    {
+        SHELL_printf("%d\n", WG_getTransferNOP());
+    }
+    else
+    {
+        uint32_t    old_value = WG_getTransferNOP();
+        uint32_t    value;
+
+        if (!strToUint32(argv[1], &value))
+        {
+            SHELL_printf("Invalid argument!\n");
+            return  RET_INVALID_ARGUMENT;
+        }
+
+        if (WG_setTransferNOP(value) != RET_OK)
+        {
+            SHELL_printf("Invalid argument!\n");
+            return  RET_INVALID_ARGUMENT;
+        }
+
+        SHELL_printf("Transfer NOP changed : %d ms -> %d ms\n", old_value, value);
+    }
+
+    return  RET_OK;
+}
 
 RET_VALUE   SHELL_COMMAND_sleep(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
 {

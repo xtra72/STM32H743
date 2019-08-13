@@ -169,6 +169,7 @@ void RF_taskMain(void const * argument)
                     if (rxFrame.qsize < 10)
                     {
                         DEBUG("SPI Queue Size : %d\n", rxFrame.qsize);
+                        osDelay(50);
                     }
                     //if (RF_waitingForSlave(false, TICK_remainTime(startTick, spiTimeout_)) == RET_OK)
                     {

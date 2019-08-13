@@ -747,6 +747,7 @@ RET_VALUE   WG_commandProcessing(uint8_t* _data, uint32_t _length)
                             {
                                 RF_REQ_SCAN_PARAMS*   params = (RF_REQ_SCAN_PARAMS*)rf_frame->payload;
                                 uint32_t    mid = 0;
+                                uint32_t    time = 0;
 
                                 mid |= (params->mid >> 24) & 0x000000FF;
                                 mid |= (params->mid >> 8) & 0x0000FF00;
@@ -964,30 +965,38 @@ void    WG_TRANS_callback(void const * argument)
 
     if (transfer_index + config_.nop <= SCAN_getCurrentLoop())
     {
+        uint32_t    count = 0;
+        uint32_t    start_time = transfer_index * config_.scan.interval;
+        uint32_t    next_time = transfer_index * config_.scan.interval;
+
+        buffer[length++] = (start_time >> 24) & 0xFF;
+        buffer[length++] = (start_time >> 16) & 0xFF;
+        buffer[length++] = (start_time >>  8) & 0xFF;
+        buffer[length++] = (start_time      ) & 0xFF;
+
         for(uint32_t i =  0 ; i <  config_.nop ; i++)
         {
             SCAN_LOOP_DATA* data = SCAN_getLoopData(transfer_index + i);
-
-            if (i == 0)
-            {
-                uint32_t    time = transfer_index * config_.scan.interval;
-                buffer[length++] = (time >> 24) & 0xFF;
-                buffer[length++] = (time >> 16) & 0xFF;
-                buffer[length++] = (time >>  8) & 0xFF;
-                buffer[length++] = (time      ) & 0xFF;
-            }
 
             for(uint32_t j =  0 ; j <  ADC_CHANNEL_getCount() ; j++)
             {
                 buffer[length++] = (data->data[j] >>  8) & 0xFF;
                 buffer[length++] = (data->data[j]      ) & 0xFF;
             }
+            count++;
+
+            next_time += config_.scan.interval;
+
+            if ((start_time / 1000) != (next_time / 1000))
+            {
+                break;
+            }
         }
 
         RET_VALUE ret = RF_sendData(0, buffer, length, 0, 1000);
         if (ret == RET_OK)
         {
-            transfer_index += config_.nop;
+            transfer_index += count;
         }
         else
         {

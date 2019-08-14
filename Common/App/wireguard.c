@@ -40,9 +40,6 @@ static  uint32_t    motionDetectedNotificationCountMax_ = 1;
 static  uint32_t    motionDetectedNotificationInterval_ = 10000;
 static  uint32_t    motionDetectedTime_ = 0;
 
-static  uint32_t            sleepTime_ = 0;
-static  uint32_t            sleepStartTime_ = 0;
-
 static const SHELL_COMMAND   shellCommands[] =
 {
     {
@@ -347,6 +344,7 @@ void WG_taskMain(void const * argument)
 
     static  uint8_t     buffer[512];
 
+    SDRAM_STORAGE_init();
     WG_TRANS_init();
 
     RF_reset();
@@ -414,7 +412,43 @@ void WG_taskMain(void const * argument)
 
         case    WG_STATUS_INIT_FINISHED:
             {
+                TIME2    currentTime;
+                SYS_SLEEP_INFO info;
+
                 RF_sendRadioStart(0, &config_.rf, 10);
+
+                TIME2_get(&currentTime);
+
+                SYS_getSleepInfo(&info);
+
+                if ((info.startTime < currentTime) && (currentTime < info.wakeUpTime))
+                {
+                    if (currentTime + config_.keepAlive < info.wakeUpTime)
+                    {
+                        uint16_t    cell = 0;
+
+                        MAX17043_getCell(&cell);
+                        RF_sendKeepAlive(0, cell, 100);
+                        osDelay(1000);
+
+                        RF_powerDown();
+
+                        SYS_sleep(config_.keepAlive);
+                    }
+                    else
+                    {
+                        uint16_t    cell = 0;
+
+                        MAX17043_getCell(&cell);
+                        RF_sendKeepAlive(0, cell, 100);
+                        osDelay(1000);
+
+                        RF_powerDown();
+
+                        SYS_sleep(info.wakeUpTime - (currentTime + config_.keepAlive));
+                    }
+                }
+
                 WG_setStatus(WG_STATUS_WAITING_FOR_CONTRACT);
             }
             break;
@@ -464,10 +498,6 @@ void WG_taskMain(void const * argument)
 
         case    WG_STATUS_SLEEP:
             {
-                if (TICK_remainTime(sleepStartTime_, sleepTime_) > 0)
-                {
-                    osDelay(1000);
-                }
             }
             break;
         }
@@ -747,7 +777,6 @@ RET_VALUE   WG_commandProcessing(uint8_t* _data, uint32_t _length)
                             {
                                 RF_REQ_SCAN_PARAMS*   params = (RF_REQ_SCAN_PARAMS*)rf_frame->payload;
                                 uint32_t    mid = 0;
-                                uint32_t    time = 0;
 
                                 mid |= (params->mid >> 24) & 0x000000FF;
                                 mid |= (params->mid >> 8) & 0x0000FF00;
@@ -858,23 +887,16 @@ RET_VALUE   WG_commandProcessing(uint8_t* _data, uint32_t _length)
                         {
                             RF_SLEEP*   params = (RF_SLEEP *)rf_frame->payload;
                             uint32_t    sleepTime =0;
+                            TIME2       currentTime;
+
 
                             sleepTime |= (params->time >> 24) & 0x000000FF;
                             sleepTime |= (params->time >>  8) & 0x0000FF00;
                             sleepTime |= (params->time <<  8) & 0x00FF0000;
                             sleepTime |= (params->time << 24) & 0xFF000000;
 
-                            RF_motionDetectionStop(0);
-                            SCAN_stop();
-                            WG_TRANS_stop();
-                            sleepTime_ = sleepTime;
-                            sleepStartTime_ = TICK_get();
-
-                            if (SYS_sleep(sleepTime_) != RET_OK)
-                            {
-                                DEBUG("Sleep failed!");
-                            }
-                            WG_setStatus(WG_STATUS_SLEEP);
+                            TIME2_get(&currentTime);
+                            WG_toSleep(currentTime + sleepTime);
                         }
                     }
                 break;
@@ -1013,4 +1035,49 @@ void    WG_readyTimeoutCallback(void const* argument)
 {
     RF_motionDetectionStart(0);
     WG_setStatus(WG_STATUS_MOTION_DETECTION);
+}
+
+bool        WG_toSleep(uint32_t wakeUpTime)
+{
+    TIME2       currentTime;
+    SYS_SLEEP_INFO  info;
+
+    TIME2_get(&currentTime);
+
+    if (wakeUpTime <= currentTime)
+    {
+        return  false;
+    }
+
+    SYS_getSleepInfo(&info);
+    if (info.wakeUpTime != wakeUpTime)
+    {
+        info.startTime = currentTime;
+        info.wakeUpTime = wakeUpTime;
+
+        SYS_setSleepInfo(&info);
+    }
+
+    RF_motionDetectionStop(0);
+    SCAN_stop();
+    WG_TRANS_stop();
+
+    RF_powerDown();
+    SYS_setSleepInfo(&info);
+    if (currentTime + config_.keepAlive < wakeUpTime)
+    {
+        if (SYS_sleep(config_.keepAlive) != RET_OK)
+        {
+            DEBUG("Sleep failed!");
+        }
+    }
+    else
+    {
+        if (SYS_sleep(wakeUpTime - currentTime) != RET_OK)
+        {
+            DEBUG("Sleep failed!");
+        }
+    }
+
+    return  false;
 }

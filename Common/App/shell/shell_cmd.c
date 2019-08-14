@@ -135,7 +135,7 @@ RET_VALUE SHELL_COMMAND_deviceId(char *argv[], uint32_t argc, struct _SHELL_COMM
     {
         SHELL_printf("%s\n", config_.deviceId);
     }
-    else if (argc == 3)
+    else if (argc == 2)
     {
         if (strlen(argv[1]) > CONFIG_DEVICE_ID_LEN)
         {
@@ -274,15 +274,40 @@ RET_VALUE SHELL_COMMAND_nop(char *argv[], uint32_t argc, struct _SHELL_COMMAND c
 
 RET_VALUE   SHELL_COMMAND_sleep(char *argv[], uint32_t argc, struct _SHELL_COMMAND const* command)
 {
-    if (argc == 2)
+    if (argc == 1)
     {
+        SYS_SLEEP_INFO  info;
+
+        SYS_getSleepInfo(&info);
+        SHELL_printf("Sleep to : %s\n", TIME2_toString(info.wakeUpTime, "%Y-%m-%d %H:%M:%S"));
+    }
+    else if (argc == 2)
+    {
+        SYS_SLEEP_INFO  info;
+
         uint32_t    sleepTime = 0;
         sleepTime = strtoul(argv[1], 0, 10);
 
-        SHELL_printf("Sleep Time : %d\n", sleepTime);
-        if (SYS_sleep(sleepTime) != RET_OK)
+        TIME2_get(&info.startTime);
+
+        info.wakeUpTime = info.startTime + sleepTime;
+
+        SHELL_printf("Sleep to : %s\n", TIME2_toString(info.wakeUpTime, "%Y-%m-%d %H:%M:%S"));
+
+        SYS_setSleepInfo(&info);
+        if (config_.keepAlive < sleepTime)
         {
-            SHELL_printf("Sleep failed\n");
+            if (SYS_sleep(config_.keepAlive) != RET_OK)
+            {
+                SHELL_printf("Sleep failed!");
+            }
+        }
+        else
+        {
+            if (SYS_sleep(sleepTime) != RET_OK)
+            {
+                SHELL_printf("Sleep failed!");
+            }
         }
     }
 

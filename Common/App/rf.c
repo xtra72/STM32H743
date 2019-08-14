@@ -396,6 +396,12 @@ void    RF_reset(void)
     osDelay(5);
 }
 
+void    RF_powerDown(void)
+{
+    HAL_GPIO_WritePin(RF_RESET_GPIO_Port, RF_RESET_Pin, GPIO_PIN_RESET);
+    osDelay(1);
+}
+
 
 RET_VALUE   RF_makeFrame(RF_IO_FRAME* _frame, uint8_t cmd, uint16_t _destAddress, uint8_t _port, uint8_t* _data, uint32_t _dataSize, uint8_t _options)
 {

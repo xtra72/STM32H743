@@ -256,6 +256,7 @@ RET_VALUE   RF_init(SPI_HandleTypeDef* _spi);
 RET_VALUE   RF_start(void);
 RET_VALUE   RF_stop(void);
 void        RF_reset(void);
+void    RF_powerDown(void);
 
 uint32_t    RF_getBufferSize(void);
 

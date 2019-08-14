@@ -76,7 +76,7 @@ RET_VALUE   TIME2_set(TIME2 value)
 
     struct tm*    tm;
 
-    value += timeZone_;
+    //value += timeZone_;
 
     tm = gmtime(&value);
 

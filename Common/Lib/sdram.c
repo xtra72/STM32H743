@@ -469,4 +469,52 @@ uint8_t *puc;
 	}
 }
 
+typedef struct
+{
+    uint16_t    crc;
+    uint8_t     buffer[TARGET_SDRAM_STORAGE_SIZE - sizeof(uint16_t)];
+}   SDRAM_STORAGE;
+
+static  SDRAM_STORAGE*    storage_ = (SDRAM_STORAGE*)TARGET_SDRAM_STORAGE_ADRESS;
+
+void    SDRAM_STORAGE_init(void)
+{
+    if (storage_->crc != CRC16_calc(storage_->buffer, sizeof(storage_->buffer)))
+    {
+        memset(storage_->buffer, 0, sizeof(storage_->buffer));
+        storage_->crc = CRC16_calc(storage_->buffer, sizeof(storage_->buffer));
+    }
+}
+
+size_t  SDRAM_STORAGE_size(void)
+{
+    return  TARGET_SDRAM_STORAGE_SIZE;
+}
+
+bool    SDRAM_STORAGE_read(uint32_t offset, uint8_t* data, uint32_t size)
+{
+    if (sizeof(storage_->buffer) < offset + size)
+    {
+        return  false;
+    }
+
+    memcpy(data, &storage_->buffer[offset], size);
+
+    return  true;
+}
+
+bool    SDRAM_STORAGE_write(uint32_t offset, uint8_t* data, uint32_t size)
+{
+    if (sizeof(storage_->buffer) < offset + size)
+    {
+        return  false;
+    }
+
+    memcpy(&storage_->buffer[offset], data, size);
+    storage_->crc = CRC16_calc(storage_->buffer, sizeof(storage_->buffer));
+
+    return  true;
+}
+
+
 #endif

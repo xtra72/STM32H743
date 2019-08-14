@@ -46,5 +46,6 @@ const   char*       WG_STATUS_getString(WG_STATUS _status);
         RET_VALUE   WG_TRANS_stop();
         bool        WG_TRANS_isRun();
 
+        bool        WG_toSleep(uint32_t wakeUpTime);
 
 #endif

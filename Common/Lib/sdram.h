@@ -23,5 +23,11 @@ void SDRAM_free( void *pv );
 size_t SDRAM_getFreeHeapSize( void );
 size_t SDRAM_getMinimumEverFreeHeapSize( void );
 
+
+void    SDRAM_STORAGE_init(void);
+size_t  SDRAM_STORAGE_size(void);
+bool    SDRAM_STORAGE_read(uint32_t offset, uint8_t* data, uint32_t size);
+bool    SDRAM_STORAGE_write(uint32_t offset, uint8_t* data, uint32_t size);
+
 #endif
 #endif
